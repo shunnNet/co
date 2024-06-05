@@ -1,5 +1,5 @@
 # rollup-plugin-co
-This is a rollup plugin that can automatically generate a imported module code base on importer content.
+This is a rollup plugin that can automatically generate a imported module code base on importer content by AI.
 
 > [!WARNING]
 > In development...
