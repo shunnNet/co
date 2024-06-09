@@ -74,13 +74,48 @@ sayHello()
 > [!WARNING]
 > Only support relative path currently
 
+## How this works ?
+`Co` will generate the referenced code based on how it is used. You don't need to think about a prompt for every generated file.
+
 ```js
+// Write down how you will use the imported code.
+
 // co
-import { sayHello } from "./path-to-file.js"
 import User from "./User.js"
 // co-end
+
+const user = new User("My name", 20)
+
+user.sayHello()
 ```
 
+```js
+// The generated code possibly be...
+export default class User {
+  constructor(name, age){
+    this.name = name
+    this.age = age
+  }
+
+  sayHello(){
+    console.log(`Hello my name is ${this.name}`)
+  }
+}
+```
+
+You can also add hints in comments, which Co will consider when generating code.
+
+```js
+// Write down how you will use the imported code.
+
+// co
+import User from "./User.js"
+// co-end
+
+const user = new User("My name", 20)
+
+user.sayHello() // Hello every one, my name is ${name}. Nice to meet you.
+```
 
 ## License
 [MIT](./LICENSE)
