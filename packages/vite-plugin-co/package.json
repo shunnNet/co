@@ -1,6 +1,6 @@
 {
   "name": "@co/vite-plugin-co",
-  "version": "1.0.0",
+  "version": "0.1.0-alpha.1",
   "type": "module",
   "description": "",
   "main": "index.js",
@@ -12,7 +12,12 @@
   "license": "ISC",
   "dependencies": {
     "@co/core": "workspace:^",
-    "defu": "^6.1.4",
-    "vite": "^5.2.0"
+    "defu": "^6.1.4"
+  },
+  "files": [
+    "index.js"
+  ],
+  "devDependencies": {
+    "vite": "^5.2.13"
   }
 }

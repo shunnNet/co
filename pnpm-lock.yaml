@@ -28,8 +28,9 @@ importers:
       defu:
         specifier: ^6.1.4
         version: 6.1.4
+    devDependencies:
       vite:
-        specifier: ^5.2.0
+        specifier: ^5.2.13
         version: 5.2.13
 
   playground/react:
