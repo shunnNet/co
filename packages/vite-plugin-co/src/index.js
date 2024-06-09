@@ -1,4 +1,4 @@
-import { start } from '@co/core'
+import { start } from '@co-ai/core'
 import defu from 'defu'
 
 /**
