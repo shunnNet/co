@@ -1,34 +1,86 @@
-# rollup-plugin-co
-This is a rollup plugin that can automatically generate a imported module code base on importer content by AI.
+# ✨ co-ai 
+A front-end development AI writing assistant, similar to Copilot but with a different working approach, will automatically create and write the content of the referenced files in the code.
 
 > [!WARNING]
 > In development...
 
+## Features
+- ✨ Auto write/rewrite when you import a file (with special comments)
+- 🚀 Seamlessly integrate with Vite plugins and work with your preferred frameworks (tested with React and Vue)
+
 ## Demo
-[![rollup-plugin-co-demo](https://i.ytimg.com/vi/XDy670obbZM/maxresdefault.jpg)](https://www.youtube.com/watch?v=XDy670obbZM) 
+Using `gpt-4o`.
 
-## How to play
-You can now try this plugin. Here’s how to use it:
+[![co-ai-demo](https://i.ytimg.com/vi/DcBn_GSMfs4/maxresdefault.jpg)](https://www.youtube.com/watch?v=DcBn_GSMfs4) 
 
-1. Clone this repo
+## Usage
+The recommended way using this package is `vite-plugin-co`
 
-2. run `pnpm install`
-
-3. run `pnpm install rollup -g`
-
-4. Paste your `OPENAI_API_KEY` to `index.js`
-
-5. Run `pnpm start`
-
-6. At `playground/main.js`, Import a simple function from any path with `co:` prefix, e.g: `import { sum } from co:./src/helper.js`. Use that function then save the `main.js`.
-
-```js
-// e.g
-import { sum } from "co:./src/helper.js"
-
-console.log(sum(1))
-
+```sh
+npm install @co-ai/vite-plugin-co
 ```
 
-7. Check the `src` folder and `bundle.js`
+Setup the plugin.
 
+```ts
+import { defineConfig } from 'vite'
+import coPlugin from '@co-ai/vite-plugin-co'
+
+export default defineConfig({
+  plugins: [
+    // ...
+    coPlugin({
+      model: 'gpt-3.5-turbo', // any OpenAI model like `gpt-4o`
+      apiKey: 'YOUR_OPENAI_API_KEY',
+      include: './**/*' // files to inspect
+      ignore: ['**/node_modules/**', '**/.vscode', '**/.git/**'] // default
+    }),
+    // ...
+  ],
+})
+```
+
+Run vite server.
+
+```sh
+npm run dev
+```
+
+Then import a file (existing or not both OK) you want ask AI to write for you with comments.
+
+```js
+// co
+import { sayHello } from "./path-to-file.js"
+import User from "./User.js" // multiple files are OK
+// co-end
+
+sayHello()
+```
+
+AI will write `./path-to-file.js` which export `sayHello` function.
+
+If you don't need AI to write for you and prefer to edit yourself, simply remove the import statement from the comment block.
+
+```js
+// co
+import User from "./User.js" // multiple files are OK
+// co-end
+
+import { sayHello } from "./path-to-file.js" // You have the control now
+
+sayHello()
+```
+
+> [!WARNING]
+> Only support relative path currently
+
+```js
+// co
+import { sayHello } from "./path-to-file.js"
+import User from "./User.js"
+// co-end
+```
+
+
+## License
+[MIT](./LICENSE)
