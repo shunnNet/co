@@ -1,12 +1,22 @@
 # ✨ co-ai 
-A front-end development AI writing assistant, similar to Copilot but with a different working approach, will automatically create and write the content of the referenced files in the code.
-
 > [!WARNING]
 > In development...
+
+A front-end development AI writing assistant, similar to Copilot but with a different working approach, will automatically create and write the content of the referenced files in the code.
+
+
+- [✨ co-ai](#-co-ai)
+  - [Features](#features)
+  - [Demo](#demo)
+  - [Usage](#usage)
+  - [How this works ?](#how-this-works-)
+  - [License](#license)
 
 ## Features
 - ✨ Auto write/rewrite when you import a file (with special comments)
 - 🚀 Seamlessly integrate with Vite plugins and work with your preferred frameworks (tested with React and Vue)
+
+
 
 ## Demo
 Using `gpt-4o`.
