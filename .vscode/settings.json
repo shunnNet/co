@@ -1,0 +1,7 @@
+{
+  "eslint.experimental.useFlatConfig": true,
+  "editor.defaultFormatter": "EditorConfig.EditorConfig",
+  "[ignore]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+}
