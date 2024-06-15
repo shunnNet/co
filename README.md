@@ -113,12 +113,12 @@ user.introduce()
 ### path resolution
 Currently, only the following path formats are supported.
 
-✅: relative path (with extension)
-✅: relative path (no extension but has special query)
-❌: node_module path
-❌: alias path
-❌: remote path
-❌: virtual path
+- ✅: relative path (with extension)
+- ✅: relative path (no extension but has special query)
+- ❌: node_module path
+- ❌: alias path
+- ❌: remote path
+- ❌: virtual path
 
 Basically, you should add the file extension to the import paths. However, in TypeScript, file extensions are usually omitted. Therefore, you can use a special query: `co-ext` to specify the file extension.
 
