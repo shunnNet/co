@@ -1,4 +1,4 @@
-import { Co } from '@co-ai/core'
+import { Co } from '@imaginary-ai/core'
 import defu from 'defu'
 import type { Plugin } from 'vite'
 

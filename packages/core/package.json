@@ -1,5 +1,5 @@
 {
-  "name": "@co-ai/core",
+  "name": "@imaginary-ai/core",
   "version": "0.2.0-alpha.1",
   "description": "",
   "main": "./dist/index.cjs",

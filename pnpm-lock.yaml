@@ -48,7 +48,7 @@ importers:
 
   packages/vite-plugin-co:
     dependencies:
-      '@co-ai/core':
+      '@imaginary-ai/core':
         specifier: workspace:^
         version: link:../core
       defu:
@@ -64,7 +64,7 @@ importers:
 
   playground/react:
     dependencies:
-      '@co-ai/vite-plugin-co':
+      '@imaginary-ai/vite-plugin-co':
         specifier: workspace:^
         version: link:../../packages/vite-plugin-co
       react:
@@ -105,7 +105,7 @@ importers:
         specifier: ^3.4.21
         version: 3.4.27(typescript@5.4.5)
     devDependencies:
-      '@co-ai/vite-plugin-co':
+      '@imaginary-ai/vite-plugin-co':
         specifier: workspace:^
         version: link:../../packages/vite-plugin-co
       '@vitejs/plugin-vue':

@@ -13,8 +13,8 @@
       "node"
     ],
     "paths": {
-      "@co-ai/core": ["./packages/core/index.ts"],
-      "@co-ai/vite-plugin-co": ["./packages/vite-plugin-co/index.ts"],
+      "@imaginary-ai/core": ["./packages/core/index.ts"],
+      "@imaginary-ai/vite-plugin-co": ["./packages/vite-plugin-co/index.ts"],
     }
   },
   "exclude": [
