@@ -7,8 +7,7 @@ export default defineConfig({
   plugins: [
     vue(),
     coPlugin({
-      model: 'gpt-3.5-turbo',
-      apiKey: '',
+      apiKey: 'YOUR_API_KEY',
     }),
   ],
 })

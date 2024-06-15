@@ -12,6 +12,10 @@
     "types": [
       "node"
     ],
+    "paths": {
+      "@co-ai/core": ["./packages/core/index.ts"],
+      "@co-ai/vite-plugin-co": ["./packages/vite-plugin-co/index.ts"],
+    }
   },
   "exclude": [
     "**/dist/**",

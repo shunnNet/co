@@ -1,18 +1,22 @@
 {
   "name": "@co-ai/vite-plugin-co",
   "version": "0.1.0-alpha.3",
-  "type": "module",
   "description": "",
-  "main": "./dist/index.mjs",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "unbuild"
-  },
+  "main": "./dist/index.cjs",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     }
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "unbuild"
   },
   "keywords": [],
   "author": "",
@@ -22,9 +26,7 @@
     "defu": "^6.1.4",
     "unbuild": "^2.0.0"
   },
-  "files": [
-    "dist"
-  ],
+
   "devDependencies": {
     "vite": "^5.2.13"
   }
