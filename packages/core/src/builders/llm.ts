@@ -42,17 +42,17 @@ export class LLMBuilder implements TBuilder<string> {
   getPrompt(blueprint: TBlueprint) {
     const requestersPrompt = blueprint.requesters.map(
       (req, i) => [
-        `---importer file ${i + 1}---`,
+        `---source file ${i + 1}---`,
         `name: ${req.id}`,
         `content: ${req.code}`,
       ].join('\n'),
     ).join('\n')
 
-    return `We have files import a file not been written, I need you write the imported file contents which fulfill the usage requirements in other importer files. You must only return file content without any word.
+    return `We have "source files" reference a file not been written, I need you write the "referenced file" contents which fulfill the usage requirements in other source files. You must only return file content without any word.
 
 ${requestersPrompt}
 
----imported file---
+---referenced file---
 filename: ${blueprint.id}
 content:
 `
