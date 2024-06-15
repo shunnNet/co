@@ -1,10 +1,10 @@
-type Requester = {
+export type Requester = {
   id: string
   code: string
   targetIds: string[]
 }
 
-type Target = {
+export type Target = {
   id: string
   type: 'text'
   requesterIds: string[]
@@ -79,5 +79,29 @@ export class Graph {
 
   protected setTarget(target: Target) {
     this.targetMap.set(target.id, target)
+  }
+
+  getBranchByTargetId(targetId: Target['id']) {
+    const target = this.getTargetById(targetId)
+    if (!target) {
+      return null
+    }
+    return {
+      id: target.id,
+      type: target.type,
+      requesters: target.requesterIds.flatMap((requesterId) => {
+        const requester = this.getRequesterById(requesterId)
+        return requester ? [requester] : []
+      }),
+    }
+  }
+
+  getAllBranches() {
+    return Array
+      .from(this.targetMap.values())
+      .flatMap((target) => {
+        const branch = this.getBranchByTargetId(target.id)
+        return branch ? [branch] : []
+      })
   }
 }
