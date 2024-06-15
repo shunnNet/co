@@ -16,4 +16,5 @@ export interface DirectiveResolver {
     options: ResoveOptions
   ): Directive[]
   // resolveTarget(content: string): string | undefined
+  isSupportedFile(filename: string): boolean
 }

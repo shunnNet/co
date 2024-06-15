@@ -6,9 +6,13 @@ import {
   dirname as getDirname,
 } from 'node:path'
 import querystring from 'node:querystring'
+import { Resolver } from './Resolver'
 
-export class JsResolver implements DirectiveResolver {
-  static supportedExtensions = ['ts', 'tsx', 'js', 'jsx', 'cjs', 'mjs', 'vue', 'json']
+export class JsResolver extends Resolver implements DirectiveResolver {
+  constructor() {
+    super()
+    this.supportedExtensions = ['ts', 'tsx', 'js', 'jsx', 'cjs', 'mjs', 'vue']
+  }
 
   resolve(content: string, options: ResoveOptions): Directive[] {
     const matchComment = content.match(/\/\/ co(?<coContent>[\s\S]*?)\/\/ co-end/)

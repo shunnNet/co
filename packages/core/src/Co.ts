@@ -13,18 +13,36 @@ import {
   dirname as getDirname,
 } from 'node:path'
 import chokidar from 'chokidar'
+import { MdResolver } from './directive-resolvers/mdResolver'
 
 export class Co {
-  resolver: DirectiveResolver
+  resolvers: DirectiveResolver[]
   graph: Graph
   builder: LLMBuilder
   watcher?: chokidar.FSWatcher
 
   constructor(options: TLLMOptions) {
-    this.resolver = new JsResolver()
+    this.resolvers = [
+      new JsResolver(),
+      new MdResolver(),
+    ]
     this.graph = new Graph()
     this.builder = new LLMBuilder(options)
     this.watcher = undefined
+  }
+
+  protected resolve(path: string) {
+    const resolver = this.resolvers.filter(r => r.isSupportedFile(path))[0]
+    if (!resolver) {
+      return {}
+    }
+    const content = readFileSync(path, 'utf-8')
+
+    return {
+      path,
+      content,
+      directives: resolver.resolve(content, { filename: path }),
+    }
   }
 
   /**
@@ -38,10 +56,9 @@ export class Co {
     })
 
     files.forEach((aFilePath) => {
-      const content = readFileSync(aFilePath, 'utf-8')
-      const directives = this.resolver.resolve(content, { filename: aFilePath })
+      const { directives, content } = this.resolve(aFilePath)
 
-      if (!directives.length) {
+      if (!directives?.length) {
         return
       }
 
@@ -102,9 +119,8 @@ export class Co {
         switch (event) {
           case 'add':
           case 'change': {
-            const content = readFileSync(absPath, 'utf-8')
-            const directives = this.resolver.resolve(content, { filename: absPath })
-            if (directives.length) {
+            const { directives, content } = this.resolve(absPath)
+            if (directives?.length) {
               const targetIds = directives.map(d => d.path)
               const requester = {
                 id: absPath,
