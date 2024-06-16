@@ -1,4 +1,4 @@
-import { isNodeModule } from '../utils'
+// import { isNodeModule } from '../utils'
 import { DirectiveResolver, Directive, ResoveOptions } from './types'
 import {
   extname as getExtname,
@@ -55,9 +55,12 @@ export class JsResolver extends Resolver implements DirectiveResolver {
     if (!baseExtension) {
       throw new Error('baseFileName must have extension')
     }
-    if (isNodeModule(relatedPath)) {
-      throw new Error('Not support node_modules import')
-    }
+
+    // TODO: Implement isNodeModule
+    // See src/utils.ts
+    // if (isNodeModule(relatedPath)) {
+    //   throw new Error('Not support node_modules import')
+    // }
 
     const baseDir = getDirname(baseFileName)
 
