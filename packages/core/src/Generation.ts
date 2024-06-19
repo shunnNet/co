@@ -6,7 +6,7 @@ import { dirname } from 'path'
 
 export class TextFileGeneration {
   public path: string
-  protected sources: Source[]
+  public sources: Source[]
   protected builder: LLMBuilder
   protected context: TGenerationContext
 
@@ -23,9 +23,14 @@ export class TextFileGeneration {
   addSource(source: Source) {
     this.sources.push(source)
   }
+
+  addSources(sources: Source[]) {
+    this.sources.push(...sources)
+  }
 }
 
 export interface Generation {
+  sources: Source[]
   generate(): Promise<void>
   addSource(source: Source): void
 }
@@ -68,7 +73,7 @@ content:
 }
 
 export class RewriteTextFileGeneration extends TextFileGeneration implements Generation {
-  protected directives: RewriteDirective[]
+  public directives: RewriteDirective[]
   constructor(
     path: string,
     directives: RewriteDirective[],
@@ -79,10 +84,14 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
   }
 
   async generate() {
+    await this.generateByDirectives(this.directives)
+  }
+
+  async generateByDirectives(directives: RewriteDirective[]) {
     let currentContent = readFileSync(this.path, 'utf-8')
 
     const results = await Promise.allSettled(
-      this.directives.map(async (directive) => {
+      directives.map(async (directive) => {
         const options = this.context.text
         const prompt = typeof options.getPrompt === 'function'
           ? options.getPrompt(this.sources, this.path, directive)

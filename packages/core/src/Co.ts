@@ -9,7 +9,7 @@ import {
 } from 'node:path'
 import chokidar from 'chokidar'
 import { MdResolver } from './directive-resolvers/mdResolver'
-import { Generation } from './Generation'
+import { Generation, RewriteTextFileGeneration, WriteTextFileGeneration } from './Generation'
 import { TGenerationContext } from './types'
 
 type TCoOptions = {
@@ -23,6 +23,7 @@ export class Co {
   watcher?: chokidar.FSWatcher
   sourceDiction: Record<string, Source>
   generationContext: TGenerationContext
+  generations: Record<string, Generation>
 
   constructor(options: TCoOptions) {
     this.resolvers = [
@@ -40,6 +41,7 @@ export class Co {
         ...options.generation.text,
       },
     }
+    this.generations = {}
   }
 
   protected getResolverByPath(path: string) {
@@ -98,14 +100,14 @@ export class Co {
         generations[directive.targetPath]?.addSource(source)
       })
     })
-    console.log('generations', generations)
 
-    const result = await Promise.allSettled(
+    await Promise.allSettled(
       Object.values(generations).map(async (gen) => {
         await gen.generate()
       }),
     )
-    console.log('result', result)
+
+    this.generations = generations
   }
 
   async generate() {
@@ -133,31 +135,72 @@ export class Co {
       this.watcher.on('all', async (event, changedPath) => {
         console.log(event, changedPath)
         const absPath = resolvePath(changedPath)
-        switch (event) {
-          case 'add':
-          case 'change': {
-            const s = this.resolveSourceByPath(absPath)
-            if (!s) {
-              if (!this.sourceDiction[absPath]) {
-                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-                delete this.sourceDiction[absPath]
-              }
-              return
-            }
-            this.sourceDiction[absPath] = s
-            const source = this.sourceDiction[absPath]
-            const content = readFileSync(absPath, 'utf-8')
-            source.content = content
-            const targetPaths = source.directives.map(d => d.targetPath)
-            await this.generateByTargetPaths(targetPaths)
-
-            break
-          }
-          case 'unlink':
-            console.log('remove: ', absPath)
+        if (event === 'unlink') {
+          if (this.sourceDiction[absPath]) {
             // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete this.sourceDiction[absPath]
-            break
+          }
+          else if (this.generations[absPath]) {
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+            delete this.generations[absPath]
+          }
+          return
+        }
+        if (event === 'add' || event === 'change') {
+          const source = this.resolveSourceByPath(absPath)
+          if (source) {
+            console.log('generate for source change: ', absPath)
+            this.sourceDiction[absPath] = source
+            const targetPaths = source.directives.map(d => d.targetPath)
+            await this.generateByTargetPaths(targetPaths)
+            return
+          }
+
+          if (this.sourceDiction[absPath]) {
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+            delete this.sourceDiction[absPath]
+          }
+
+          const resolver = this.getResolverByPath(absPath)
+          if (!resolver) {
+            return
+          }
+          const gen = resolver.resolveGeneration(absPath, this.generationContext)
+          /**
+           * If it is not WriteGeneration and it is not in the this.generations
+           * This means it has no source file reference, so we can ignore it.
+           * */
+          if (gen instanceof RewriteTextFileGeneration) {
+            if (!this.generations[absPath]) {
+              return
+            }
+            gen.addSources(this.generations[absPath].sources)
+
+            if (this.generations[absPath] instanceof WriteTextFileGeneration) {
+              console.log('rewrite: ', absPath)
+              await gen.generate()
+              this.generations[absPath] = gen
+            }
+            else if (this.generations[absPath] instanceof RewriteTextFileGeneration) {
+              const { directives } = this.generations[absPath] as RewriteTextFileGeneration
+
+              // TODO: This is a temporary way. It's dangerous to update directive relying on object references.
+              gen.directives.forEach((d) => {
+                const notChangedDirective = directives.find((od) => {
+                  return od.result === d.content && od.prompt === d.prompt
+                })
+                if (notChangedDirective) {
+                  d.result = notChangedDirective.result
+                }
+              })
+              const directivesNeedRegenerated = gen.directives.filter(d => d.result !== d.content)
+              if (directivesNeedRegenerated.length) {
+                console.log('rewrite: ', absPath)
+                await gen.generateByDirectives(directivesNeedRegenerated)
+              }
+              this.generations[absPath] = gen
+            }
+          }
         }
       })
     })

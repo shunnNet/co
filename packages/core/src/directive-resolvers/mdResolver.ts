@@ -66,11 +66,11 @@ export class MdResolver extends Resolver implements DirectiveResolver {
     if (!matchAllComments.length) {
       return new WriteTextFileGeneration(targetPath, generationContext)
     }
-    const rewriteDirectives = matchAllComments.flatMap((match, index) => match.groups?.coContent
+    const rewriteDirectives = matchAllComments.flatMap((match, index) => match.groups?.coContent !== undefined
       ? [{
           index,
-          content: match.groups.coContent,
-          prompt: match.groups.prompt || '',
+          content: match.groups.coContent || '',
+          prompt: match.groups?.prompt || '',
           resolver: this,
           result: '',
         }]
@@ -85,14 +85,22 @@ export class MdResolver extends Resolver implements DirectiveResolver {
   }
 
   rewriteGeneration(content: string, id: number, rewrite: string): string {
-    const matchAllResults = [...content.matchAll(/<!--\sco-target\s(?<prompt>.*)-->\n(?<coContent>[\s\S]+)\n<!--\sco-target-end\s-->/g)]
+    const matchAllResults = [...content.matchAll(/(?<header><!--\sco-target\s(?<prompt>.*)-->\n)(?<coContent>[\s\S]+)(?<footer>\n<!--\sco-target-end\s-->)/g)]
     if (matchAllResults[id]) {
       const coContent = matchAllResults[id].groups?.coContent
+      const header = matchAllResults[id].groups?.header
+      const footer = matchAllResults[id].groups?.footer
       const fullMatchContent = matchAllResults[id][0]
       if (coContent) {
         return content.replace(
           fullMatchContent,
           fullMatchContent.replace(coContent, rewrite),
+        )
+      }
+      else if (header && footer) {
+        return content.replace(
+          fullMatchContent,
+          header + rewrite + footer,
         )
       }
       else {
