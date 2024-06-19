@@ -16,7 +16,8 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "unbuild"
+    "build": "unbuild",
+    "stub": "unbuild --stub"
   },
   "keywords": [],
   "author": "",

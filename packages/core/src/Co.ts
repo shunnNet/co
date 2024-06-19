@@ -1,47 +1,64 @@
-import { DirectiveResolver } from './directive-resolvers/types'
+import { Source, DirectiveResolver } from './directive-resolvers/types'
 import { JsResolver } from './directive-resolvers/JsResolver'
-import { Graph } from './Graph'
-import { LLMBuilder, TLLMOptions } from './builders/llm'
 import fg from 'fast-glob'
 import {
   readFileSync,
-  writeFileSync,
-  mkdirSync,
 } from 'node:fs'
 import {
   resolve as resolvePath,
-  dirname as getDirname,
 } from 'node:path'
 import chokidar from 'chokidar'
 import { MdResolver } from './directive-resolvers/mdResolver'
+import { Generation } from './Generation'
+import { TGenerationContext } from './types'
+
+type TCoOptions = {
+  generation: {
+    text: Partial<TGenerationContext['text']>
+  }
+}
 
 export class Co {
   resolvers: DirectiveResolver[]
-  graph: Graph
-  builder: LLMBuilder
   watcher?: chokidar.FSWatcher
+  sourceDiction: Record<string, Source>
+  generationContext: TGenerationContext
 
-  constructor(options: TLLMOptions) {
+  constructor(options: TCoOptions) {
     this.resolvers = [
       new JsResolver(),
       new MdResolver(),
     ]
-    this.graph = new Graph()
-    this.builder = new LLMBuilder(options)
     this.watcher = undefined
+    this.sourceDiction = {}
+    this.generationContext = {
+      text: {
+        apiKey: '',
+        model: 'gpt-3.5-turbo',
+        temperature: 0,
+        getPrompt: null,
+        ...options.generation.text,
+      },
+    }
   }
 
-  protected resolve(path: string) {
+  protected getResolverByPath(path: string) {
     const resolver = this.resolvers.filter(r => r.isSupportedFile(path))[0]
+    return resolver
+  }
+
+  resolveSourceByPath(path: string): Source | null {
+    const resolver = this.getResolverByPath(path)
     if (!resolver) {
-      return {}
+      return null
     }
     const content = readFileSync(path, 'utf-8')
-
-    return {
-      path,
-      content,
-      directives: resolver.resolve(content, { filename: path }),
+    const source = resolver.resolve(content, { filename: path })
+    if (!source.directives.length) {
+      return null
+    }
+    else {
+      return source
     }
   }
 
@@ -51,51 +68,51 @@ export class Co {
    * @param ignore - An array of glob patterns to exclude files from being scanned.
    */
   async scan(include: string, ignore: string[]) {
+    this.sourceDiction = {}
     const files = await fg(include, {
       ignore,
     })
 
     files.forEach((aFilePath) => {
-      const { directives, content } = this.resolve(aFilePath)
-
-      if (!directives?.length) {
-        return
+      const source = this.resolveSourceByPath(aFilePath)
+      if (source) {
+        this.sourceDiction[aFilePath] = source
       }
-
-      this.graph.addDependencyByRequester(
-        {
-          id: aFilePath,
-          code: content,
-          targetIds: directives.map(d => d.path),
-        },
-      )
     })
   }
 
-  /**
-   * Builds the graph by asynchronously building each branch and writing the content to a file.
-   * @returns {Promise<void>} A promise that resolves when all branches have been built and written to files.
-   */
-  async build() {
-    await Promise.allSettled(
-      this.graph
-        .getAllBranches()
-        .map(async (branch) => {
-          try {
-            const content = await this.builder.build({
-              id: branch.id,
-              requesters: branch.requesters,
-            })
-            console.log('write: ', branch.id)
-            mkdirSync(getDirname(branch.id), { recursive: true })
-            writeFileSync(branch.id, content)
-          }
-          catch (e) {
-            console.error(e)
-            console.warn('Failed to build', branch.id)
-          }
-        }),
+  async generateByTargetPaths(targetPaths: string[]) {
+    const generations: Record<string, Generation> = {}
+
+    targetPaths.forEach((target) => {
+      const resolver = this.getResolverByPath(target)
+      if (!resolver) {
+        return
+      }
+      const gen = resolver.resolveGeneration(target, this.generationContext)
+      generations[target] = gen
+    })
+
+    Object.values(this.sourceDiction).forEach((source) => {
+      source.directives.forEach((directive) => {
+        generations[directive.targetPath]?.addSource(source)
+      })
+    })
+    console.log('generations', generations)
+
+    const result = await Promise.allSettled(
+      Object.values(generations).map(async (gen) => {
+        await gen.generate()
+      }),
     )
+    console.log('result', result)
+  }
+
+  async generate() {
+    const targetPaths = Object.values(this.sourceDiction)
+      .flatMap(s => s.directives.map(d => d.targetPath))
+
+    await this.generateByTargetPaths(targetPaths)
   }
 
   /**
@@ -119,40 +136,27 @@ export class Co {
         switch (event) {
           case 'add':
           case 'change': {
-            const { directives, content } = this.resolve(absPath)
-            if (directives?.length) {
-              const targetIds = directives.map(d => d.path)
-              const requester = {
-                id: absPath,
-                code: content,
-                targetIds,
+            const s = this.resolveSourceByPath(absPath)
+            if (!s) {
+              if (!this.sourceDiction[absPath]) {
+                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+                delete this.sourceDiction[absPath]
               }
-              this.graph.addDependencyByRequester(requester)
-              targetIds.map(async (targetId) => {
-                const branch = this.graph.getBranchByTargetId(targetId)
-                if (!branch) {
-                  return
-                }
-                try {
-                  const content = await this.builder.build(branch)
-                  console.log('write: ', branch.id)
-                  mkdirSync(getDirname(branch.id), { recursive: true })
-                  writeFileSync(branch.id, content)
-                }
-                catch (e) {
-                  console.error(e)
-                  console.warn('Failed to build', branch.id)
-                }
-              })
+              return
             }
-            else {
-              this.graph.removeDependencyByRequesterId(absPath)
-            }
+            this.sourceDiction[absPath] = s
+            const source = this.sourceDiction[absPath]
+            const content = readFileSync(absPath, 'utf-8')
+            source.content = content
+            const targetPaths = source.directives.map(d => d.targetPath)
+            await this.generateByTargetPaths(targetPaths)
+
             break
           }
           case 'unlink':
             console.log('remove: ', absPath)
-            this.graph.removeDependencyByRequesterId(absPath)
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+            delete this.sourceDiction[absPath]
             break
         }
       })

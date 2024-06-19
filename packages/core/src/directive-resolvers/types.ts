@@ -1,9 +1,21 @@
-export type Directive = {
+import { Generation } from '../Generation'
+import { TGenerationContext } from '../types'
+
+export type Source = {
   path: string
+  content: string
+  directives: SourceDirective[]
+}
+
+export type SourceDirective = {
+  targetPath: string
+}
+
+export type GenerationDirective = {
+  index?: number
+  content?: string
   prompt?: string
-  model?: string
-  temperature?: number
-  target?: string
+  resolver: DirectiveResolver
 }
 
 export type ResoveOptions = {
@@ -14,7 +26,19 @@ export interface DirectiveResolver {
   resolve(
     content: string,
     options: ResoveOptions
-  ): Directive[]
-  // resolveTarget(content: string): string | undefined
+  ): Source
+  resolveGeneration(
+    targetPath: string,
+    generationContext: TGenerationContext,
+  ): Generation
+  rewriteGeneration(content: string, id: number, rewrite: string): string
   isSupportedFile(filename: string): boolean
+}
+
+export type RewriteDirective = {
+  index: number
+  content: string
+  prompt: string
+  resolver: DirectiveResolver
+  result: string
 }

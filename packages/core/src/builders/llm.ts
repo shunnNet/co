@@ -1,61 +1,26 @@
-import { TBuilder, TBlueprint } from './Builder'
-
-export type TLLMOptions = {
-  apiKey: string
-  model?: string
-  temperature?: number
-}
+import { TBuilder, TLLMOptions } from './types'
 
 export class LLMBuilder implements TBuilder<string> {
-  options: TLLMOptions
-
-  constructor(options: TLLMOptions) {
-    this.options = Object.assign({}, {
-      model: 'gpt-3.5-turbo',
-      temperature: 0,
-    }, options)
-  }
-
-  async build(blueprint: TBlueprint) {
-    const prompt = this.getPrompt(blueprint)
+  async build(options: TLLMOptions) {
     return fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.options.apiKey}`,
+        'Authorization': `Bearer ${options.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.options.model,
-        temperature: this.options.temperature,
+        model: options.model,
+        temperature: options.temperature,
         messages: [
           {
             role: 'user',
-            content: prompt,
+            content: options.prompt,
           },
         ],
       }),
     })
       .then(res => res.json())
       .then(res => this.sanitizeLLMOutput(res.choices[0].message.content))
-  }
-
-  getPrompt(blueprint: TBlueprint) {
-    const requestersPrompt = blueprint.requesters.map(
-      (req, i) => [
-        `---source file ${i + 1}---`,
-        `name: ${req.id}`,
-        `content: ${req.code}`,
-      ].join('\n'),
-    ).join('\n')
-
-    return `We have "source files" reference a file not been written, I need you write the "referenced file" contents which fulfill the usage requirements in other source files. You must only return file content without any word.
-
-${requestersPrompt}
-
----referenced file---
-filename: ${blueprint.id}
-content:
-`
   }
 
   sanitizeLLMOutput(content: string) {
