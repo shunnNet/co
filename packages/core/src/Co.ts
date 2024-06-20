@@ -12,6 +12,7 @@ import { MdResolver } from './directive-resolvers/mdResolver'
 import { Generation, RewriteTextFileGeneration, WriteTextFileGeneration } from './Generation'
 import { TGenerationContext } from './types'
 import { debounce } from './utils'
+import { Resolver } from './directive-resolvers/Resolver'
 
 type TCoOptions = {
   generation: {
@@ -25,6 +26,7 @@ export class Co {
   sourceDiction: Record<string, Source>
   generationContext: TGenerationContext
   generations: Record<string, Generation>
+  generationResovler: Resolver
 
   constructor(options: TCoOptions) {
     this.resolvers = [
@@ -43,10 +45,11 @@ export class Co {
       },
     }
     this.generations = {}
+    this.generationResovler = new Resolver()
   }
 
   protected getResolverByPath(path: string) {
-    const resolver = this.resolvers.filter(r => r.isSupportedFile(path))[0]
+    const resolver = this.resolvers.filter(r => r.isSupportedSource(path))[0]
     return resolver
   }
 
@@ -88,11 +91,7 @@ export class Co {
     const generations: Record<string, Generation> = {}
 
     targetPaths.forEach((target) => {
-      const resolver = this.getResolverByPath(target)
-      if (!resolver) {
-        return
-      }
-      const gen = resolver.resolveGeneration(target, this.generationContext)
+      const gen = this.generationResovler.resolveGeneration(target, this.generationContext)
       generations[target] = gen
     })
 
@@ -198,11 +197,7 @@ export class Co {
             // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete this.generations[absPath]
           }
-          const resolver = this.getResolverByPath(absPath)
-          if (!resolver) {
-            return
-          }
-          const gen = resolver.resolveGeneration(absPath, this.generationContext)
+          const gen = this.generationResovler.resolveGeneration(absPath, this.generationContext)
           /**
            * If it is not WriteGeneration and it is not in the this.generations
            * This means it has no source file reference, so we can ignore it.
