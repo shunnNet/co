@@ -30,6 +30,7 @@ export class TextFileGeneration {
 }
 
 export interface Generation {
+  path: string
   sources: Source[]
   generate(): Promise<void>
   addSource(source: Source): void
