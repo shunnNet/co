@@ -10,22 +10,25 @@ export class JsResolver extends Resolver implements DirectiveResolver {
   }
 
   resolve(content: string, options: ResoveOptions): Source {
-    const matchComment = content.match(/\/\/ co(?<coContent>[\s\S]*?)\/\/ co-end/)
-
-    if (!(matchComment?.groups?.coContent)) {
+    const matchCoContents = [...content.matchAll(/\/\/ co(?<coContent>[\s\S]*?)\/\/ co-end/g)]
+    if (matchCoContents.length === 0) {
       return {
         path: options.filename,
         content,
         directives: [],
       }
     }
-    const { coContent } = matchComment.groups
+    const coContents = matchCoContents.map(match => match.groups?.coContent).filter(Boolean).join('\n')
+    const matchImportSideEfferct = coContents.matchAll(/import\s+['"](?<path>[^\s]*?)['"]/g)
 
-    const matchImportSideEfferct = coContent.matchAll(/import\s+['"](?<path>[^\s]*?)['"]/g)
-    const coContentRemoveSideEffect = coContent.replace(/import\s+['"][^\s]*?['"]/g, '')
+    const coContentRemoveSideEffect = coContents.replace(/import\s+['"][^\s]*?['"]/g, '')
 
-    const matchImports = coContentRemoveSideEffect.matchAll(/import[\s\S]*?from ['"](?<path>[^\s]*?)['"]/g)
-    const imports = Array.from(matchImports).flatMap(
+    const matchImports = [
+      ...coContentRemoveSideEffect.matchAll(/import[\s\S]*?from ['"](?<path>[^\s]*?)['"]/g),
+      ...coContentRemoveSideEffect.matchAll(/require\(['"](?<path>[^\s]*?)['"]\)/g),
+    ]
+
+    const imports = matchImports.flatMap(
       match => match && match.groups ? [match.groups.path] : [],
     )
     const importsSideEffect = Array.from(matchImportSideEfferct).flatMap(
