@@ -128,7 +128,6 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
         `content: ${source.content}`,
       ].join('\n'),
     ).join('\n')
-    // TODO: handle rewrite prompt
     return `We have "source files" reference a file, which has a part of content need adjust, I need you rewrite the content in "referenced file" to fulfill the usage requirements in other source files. You must only return rewrited content without any word.
 
 ${sourcePrompt}

@@ -113,7 +113,7 @@ export class Co {
       }),
     )
 
-    this.generations = generations
+    this.generations = { ...generations }
   }
 
   async generate() {
@@ -193,47 +193,44 @@ export class Co {
         ).map(({ absPath }) => absPath)
 
         await Promise.allSettled(pathsNoSource.map(async (absPath) => {
-          if (this.generations[absPath]) {
-            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-            delete this.generations[absPath]
-          }
           const gen = this.generationResovler.resolveGeneration(absPath, this.generationContext)
-          /**
-           * If it is not WriteGeneration and it is not in the this.generations
-           * This means it has no source file reference, so we can ignore it.
-           * */
-          if (!(
-            gen instanceof RewriteTextFileGeneration
-            && this.generations[absPath]
-          )) {
-            return
-          }
-          gen.addSources(this.generations[absPath].sources)
-
-          if (this.generations[absPath] instanceof WriteTextFileGeneration) {
+          if (gen instanceof WriteTextFileGeneration) {
             console.log('rewrite: ', absPath)
             await gen.generate()
             this.generations[absPath] = gen
+            return
           }
-          else if (this.generations[absPath] instanceof RewriteTextFileGeneration) {
-            const { directives } = this.generations[absPath] as RewriteTextFileGeneration
-
-            // TODO: This is a temporary way. It's dangerous to update directive relying on object references.
-            gen.directives.forEach((d) => {
-              const notChangedDirective = directives.find((od) => {
-                return od.result === d.content && od.prompt === d.prompt
-              })
-              if (notChangedDirective) {
-                d.result = notChangedDirective.result
+          if (!(gen instanceof RewriteTextFileGeneration)) {
+            return
+          }
+          if (!this.generations[absPath]) {
+            Object.values(this.sourceDiction).forEach((source) => {
+              if (source.directives.some(d => d.targetPath === absPath)) {
+                gen.addSource(source)
               }
             })
-            const directivesNeedRegenerated = gen.directives.filter(d => d.result !== d.content)
-            if (directivesNeedRegenerated.length) {
-              console.log('rewrite: ', absPath)
-              await gen.generateByDirectives(directivesNeedRegenerated)
-            }
             this.generations[absPath] = gen
           }
+          else {
+            gen.addSources(this.generations[absPath].sources)
+          }
+
+          const { directives } = this.generations[absPath] as RewriteTextFileGeneration
+          // TODO: This is a temporary way. It's dangerous to update directive relying on object references.
+          gen.directives.forEach((d) => {
+            const notChangedDirective = directives.find((od) => {
+              return od.result === d.content && od.prompt === d.prompt
+            })
+            if (notChangedDirective) {
+              d.result = notChangedDirective.result
+            }
+          })
+          const directivesNeedRegenerated = gen.directives.filter(d => d.result !== d.content)
+          if (directivesNeedRegenerated.length) {
+            console.log('rewrite: ', absPath)
+            await gen.generateByDirectives(directivesNeedRegenerated)
+          }
+          this.generations[absPath] = gen
         }))
       }
       const debouncedHandler = debounce(async () => {
