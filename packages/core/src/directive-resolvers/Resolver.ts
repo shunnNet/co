@@ -24,8 +24,8 @@ export class Resolver {
     }
     const content = readFileSync(targetPath, 'utf-8')
     const matchAllComments = [
-      ...content.matchAll(/\/\/ co-target(?<prompt>.*)\n(?<coContent>[\s\S]*?)\n\/\/\sco-target-end/g),
-      ...content.matchAll(/<!--\sco-target\s(?<prompt>.*)-->\n(?<coContent>[\s\S]+)\n<!--\sco-target-end\s-->/g),
+      ...content.matchAll(/\/\/ co-target(?<prompt>.*)\n(?<coContent>[\s\S]*?)\/\/\sco-target-end/g),
+      ...content.matchAll(/<!--\sco-target\s(?<prompt>.*)-->\n(?<coContent>[\s\S]*?)<!--\sco-target-end\s-->/g),
     ]
     if (!matchAllComments.length) {
       return new WriteTextFileGeneration(targetPath, generationContext)
@@ -53,7 +53,7 @@ export class Resolver {
   rewriteGeneration(content: string, id: number, rewrite: string): string {
     const matchAllResults = [
       ...content.matchAll(/(?<header>\/\/ co-target(?<prompt>.*)\n)(?<coContent>[\s\S]*?)(?<footer>\n\/\/\sco-target-end)/g),
-      ...content.matchAll(/<!--\sco-target\s(?<prompt>.*)-->\n(?<coContent>[\s\S]+)\n<!--\sco-target-end\s-->/g),
+      ...content.matchAll(/(?<header><!--\sco-target\s(?<prompt>.*)-->\n)(?<coContent>[\s\S]*?)(?<footer><!--\sco-target-end\s-->)/g),
     ]
     if (matchAllResults[id]) {
       const coContent = matchAllResults[id].groups?.coContent

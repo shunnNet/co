@@ -9,7 +9,7 @@ import {
 } from 'node:path'
 import chokidar from 'chokidar'
 import { MdResolver } from './directive-resolvers/mdResolver'
-import { Generation, RewriteTextFileGeneration, WriteTextFileGeneration } from './Generation'
+import { Generation, RewriteTextFileGeneration } from './Generation'
 import { TGenerationContext } from './types'
 import { debounce } from './utils'
 import { Resolver } from './directive-resolvers/Resolver'
@@ -194,13 +194,8 @@ export class Co {
 
         await Promise.allSettled(pathsNoSource.map(async (absPath) => {
           const gen = this.generationResovler.resolveGeneration(absPath, this.generationContext)
-          if (gen instanceof WriteTextFileGeneration) {
-            console.log('rewrite: ', absPath)
-            await gen.generate()
-            this.generations[absPath] = gen
-            return
-          }
           if (!(gen instanceof RewriteTextFileGeneration)) {
+            console.log('Not rewrite generation: ', absPath)
             return
           }
           if (!this.generations[absPath]) {
