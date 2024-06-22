@@ -18,6 +18,19 @@ type TCoOptions = {
   generation: {
     text: Partial<TGenerationContext['text']>
   }
+  /**
+   * A map of aliases to resolve paths.
+   * example:
+   *  {
+   *  '@': './src',
+   *  '~': './src',
+   *  '~server: './src/server',
+   *  '~client: './src/client
+   * }
+   */
+  resolve?: {
+    alias?: Record<string, string>
+  }
 }
 
 export class Co {
@@ -30,8 +43,8 @@ export class Co {
 
   constructor(options: TCoOptions) {
     this.resolvers = [
-      new JsResolver(),
-      new MdResolver(),
+      new JsResolver(options.resolve),
+      new MdResolver(options.resolve),
     ]
     this.watcher = undefined
     this.sourceDiction = {}

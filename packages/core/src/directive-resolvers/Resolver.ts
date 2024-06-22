@@ -1,6 +1,5 @@
 import {
   extname as getExtname,
-  resolve as resolvePath,
   dirname as getDirname,
 } from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
@@ -11,9 +10,19 @@ import {
 } from '../Generation'
 import { TGenerationContext } from '../types'
 import querystring from 'node:querystring'
+import { PathResolver } from '../PathResolver'
 
+export type TResolverOptions = {
+  alias?: Record<string, string>
+}
 export class Resolver {
   public supportedSourceExtensions: string[] = []
+  private pathResolver: PathResolver
+
+  constructor(options: TResolverOptions = {}) {
+    this.pathResolver = new PathResolver(options.alias)
+  }
+
   isSupportedSource(filename: string) {
     const ext = getExtname(filename).slice(1)
     return this.supportedSourceExtensions.includes(ext)
@@ -104,19 +113,23 @@ export class Resolver {
     const baseDir = getDirname(baseFileName)
 
     if (getExtname(relatedPath)) {
-      return resolvePath(baseDir, relatedPath)
+      return this.pathResolver.resolveAlias(baseDir, relatedPath)
     }
     else {
       const [pathWithoutQs, qs] = relatedPath.split('?')
       const qsObj = querystring.parse(qs)
-      if (qsObj['co-ext'] && 'co-index' in qsObj) {
-        return resolvePath(baseDir, pathWithoutQs, 'index' + '.' + qsObj['co-ext'])
-      }
-      else if (qsObj['co-ext']) {
-        return resolvePath(baseDir, pathWithoutQs + '.' + qsObj['co-ext'])
+
+      if (qsObj['co-ext']) {
+        const ext = Array.isArray(qsObj['co-ext']) ? qsObj['co-ext'][0] : qsObj['co-ext']
+        if ('co-index' in qsObj) {
+          return this.pathResolver.resolve(baseDir, pathWithoutQs + '/index', ext)
+        }
+        else {
+          return this.pathResolver.resolve(baseDir, pathWithoutQs, ext)
+        }
       }
       else {
-        throw new Error(`Failed to resolve without extension: ${relatedPath}`)
+        return this.pathResolver.resolve(baseDir, pathWithoutQs, 'txt')
       }
     }
   }
