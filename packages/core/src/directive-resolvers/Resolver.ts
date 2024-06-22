@@ -4,7 +4,11 @@ import {
   dirname as getDirname,
 } from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
-import { Generation, RewriteTextFileGeneration, WriteTextFileGeneration } from '../Generation'
+import {
+  Generation,
+  // RewriteTextFileGeneration,
+  WriteTextFileGeneration,
+} from '../Generation'
 import { TGenerationContext } from '../types'
 import querystring from 'node:querystring'
 
@@ -30,24 +34,28 @@ export class Resolver {
     if (!matchAllComments.length) {
       return new WriteTextFileGeneration(targetPath, generationContext)
     }
-    const rewriteDirectives = matchAllComments.flatMap((match, index) => match.groups?.coContent !== undefined
-      ? [{
-          index,
-          content: match.groups.coContent || '',
-          prompt: match.groups?.prompt || '',
-          resolver: this,
-          result: '',
-        }]
-      : [],
-    )
 
-    // TODO: handle duplicate contents
-    // index solution can not handle because index may change after each rewrite
-    return new RewriteTextFileGeneration(
-      targetPath,
-      rewriteDirectives,
-      generationContext,
-    )
+    return new WriteTextFileGeneration(targetPath, generationContext)
+
+    // !NOTE: Temporary disable rewrite
+    // const rewriteDirectives = matchAllComments.flatMap((match, index) => match.groups?.coContent !== undefined
+    //   ? [{
+    //       index,
+    //       content: match.groups.coContent || '',
+    //       prompt: match.groups?.prompt || '',
+    //       resolver: this,
+    //       result: '',
+    //     }]
+    //   : [],
+    // )
+
+    // // TODO: handle duplicate contents
+    // // index solution can not handle because index may change after each rewrite
+    // return new RewriteTextFileGeneration(
+    //   targetPath,
+    //   rewriteDirectives,
+    //   generationContext,
+    // )
   }
 
   rewriteGeneration(content: string, id: number, rewrite: string): string {

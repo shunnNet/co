@@ -192,10 +192,11 @@ export class Co {
           ({ source }) => !source,
         ).map(({ absPath }) => absPath)
 
+        // !NOTE: temporary disable rewrite
         await Promise.allSettled(pathsNoSource.map(async (absPath) => {
           const gen = this.generationResovler.resolveGeneration(absPath, this.generationContext)
           if (!(gen instanceof RewriteTextFileGeneration)) {
-            console.log('Not rewrite generation: ', absPath)
+            // console.log('Not rewrite generation: ', absPath)
             return
           }
           if (!this.generations[absPath]) {
