@@ -56,11 +56,35 @@ export class WriteTextFileGeneration extends TextFileGeneration implements Gener
 
   getPrompt() {
     const sourcePrompt = this.sources.map(
-      (source, i) => [
-        `---source file ${i + 1}---`,
-        `name: ${source.path}`,
-        `content: ${source.content}`,
-      ].join('\n'),
+      (source) => {
+        const fragments = source.directives.flatMap((directive) => {
+          return directive.targetPath === this.path && directive.fragment
+            ? [directive.fragment]
+            : []
+        })
+
+        const generateByFullContent = source.directives.some(
+          directive => directive.targetPath === this.path && !directive.fragment,
+        )
+
+        const fullContentPrompt = generateByFullContent
+          ? [
+          `---source file---`,
+          `name: ${source.path}`,
+          `content: ${source.content}`,
+            ].join('\n')
+          : ''
+
+        const fragmentPrompt = fragments.map(
+          fragment => [
+            `---source file---`,
+            `name: ${source.path}`,
+            `content: ${fragment}`,
+          ].join('\n'),
+        ).join('\n')
+
+        return [fullContentPrompt, fragmentPrompt].filter(Boolean).join('\n')
+      },
     ).join('\n')
     return `We have "source files" reference a file not been written, I need you write the "referenced file" contents which fulfill the usage requirements in other source files. You must only return file content without any word.
 
@@ -122,11 +146,35 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
 
   getPrompt(directive: RewriteDirective) {
     const sourcePrompt = this.sources.map(
-      (source, i) => [
-        `---source file ${i + 1}---`,
-        `name: ${source.path}`,
-        `content: ${source.content}`,
-      ].join('\n'),
+      (source) => {
+        const fragments = source.directives.flatMap((directive) => {
+          return directive.targetPath === this.path && directive.fragment
+            ? [directive.fragment]
+            : []
+        })
+
+        const generateByFullContent = source.directives.some(
+          directive => directive.targetPath === this.path && !directive.fragment,
+        )
+
+        const fullContentPrompt = generateByFullContent
+          ? [
+          `---source file---`,
+          `name: ${source.path}`,
+          `content: ${source.content}`,
+            ].join('\n')
+          : ''
+
+        const fragmentPrompt = fragments.map(
+          fragment => [
+            `---source file---`,
+            `name: ${source.path}`,
+            `content: ${fragment}`,
+          ].join('\n'),
+        ).join('\n')
+
+        return [fullContentPrompt, fragmentPrompt].filter(Boolean).join('\n')
+      },
     ).join('\n')
     return `We have "source files" reference a file, which has a part of content need adjust, I need you rewrite the content in "referenced file" to fulfill the usage requirements in other source files. You must only return rewrited content without any word.
 

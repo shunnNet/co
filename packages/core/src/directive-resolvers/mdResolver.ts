@@ -10,8 +10,9 @@ export class MdResolver extends Resolver implements DirectiveResolver {
 
   resolve(content: string, options: ResoveOptions): Source {
     const matchCoContents = [...content.matchAll(/<!--\sco\s-->(?<content>[\s\S]+)<!--\sco-end\s-->/g)]
+    const matchCoSources = [...content.matchAll(/<!-- co-source (?<dir>.+) -->(?<fragment>[\s\S]*?)<!--\sco-end\s-->/g)]
 
-    if (matchCoContents.length === 0) {
+    if (matchCoContents.length === 0 && matchCoSources.length === 0) {
       return {
         path: options.filename,
         content,
@@ -36,14 +37,29 @@ export class MdResolver extends Resolver implements DirectiveResolver {
       }
     })
 
+    const fragments = matchCoSources.flatMap((match) => {
+      const dir = match.groups?.dir
+      const fragment = match.groups?.fragment
+      if (!dir || !fragment) {
+        return []
+      }
+      const targetPath = dir.match(/path:(?<path>[^\s]+)/)?.groups?.path
+      if (!targetPath) {
+        return []
+      }
+      return [{
+        targetPath: this.ensureAbsolutePath(options.filename, targetPath),
+        fragment,
+      }]
+    })
+
     return {
       path: options.filename,
       content,
-      directives: allImports.map((targetPath) => {
-        return {
-          targetPath,
-        }
-      }),
+      directives: [
+        ...allImports.map(targetPath => ({ targetPath, fragments: '' })),
+        ...fragments,
+      ],
     }
   }
 }

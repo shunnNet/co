@@ -10,6 +10,7 @@ export type Source = {
 
 export type SourceDirective = {
   targetPath: string
+  fragment?: string
 }
 
 export type GenerationDirective = {
