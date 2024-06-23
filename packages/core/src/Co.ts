@@ -109,6 +109,10 @@ export class Co {
     })
 
     Object.values(this.sourceDiction).forEach((source) => {
+      // !NOTE: temporary disallow source is also a generation target (prevent chain generation)
+      if (generations[source.path]) {
+        return
+      }
       source.directives.forEach((directive) => {
         generations[directive.targetPath]?.addSource(source)
       })
@@ -228,13 +232,13 @@ export class Co {
           // TODO: This is a temporary way. It's dangerous to update directive relying on object references.
           gen.directives.forEach((d) => {
             const notChangedDirective = directives.find((od) => {
-              return od.result === d.content && od.prompt === d.prompt
+              return od.result.trim() === d.content.trim() && od.prompt === d.prompt
             })
             if (notChangedDirective) {
               d.result = notChangedDirective.result
             }
           })
-          const directivesNeedRegenerated = gen.directives.filter(d => d.result !== d.content)
+          const directivesNeedRegenerated = gen.directives.filter(d => d.result.trim() !== d.content.trim())
           if (directivesNeedRegenerated.length) {
             console.log('rewrite: ', absPath)
             await gen.generateByDirectives(directivesNeedRegenerated)

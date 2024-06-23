@@ -5,7 +5,7 @@ import {
 import { existsSync, readFileSync } from 'node:fs'
 import {
   Generation,
-  // RewriteTextFileGeneration,
+  RewriteTextFileGeneration,
   WriteTextFileGeneration,
 } from '../Generation'
 import { TGenerationContext } from '../types'
@@ -38,39 +38,36 @@ export class Resolver {
     const content = readFileSync(targetPath, 'utf-8')
     const matchAllComments = [
       ...content.matchAll(/\/\/ co-target(?<prompt>.*)\n(?<coContent>[\s\S]*?)\/\/\sco-target-end/g),
-      ...content.matchAll(/<!--\sco-target\s(?<prompt>.*)-->\n(?<coContent>[\s\S]*?)<!--\sco-target-end\s-->/g),
+      ...content.matchAll(/<!--\sco-target\s(?<prompt>.*)-->(?<coContent>[\s\S]*?)<!--\sco-target-end\s-->/g),
     ]
     if (!matchAllComments.length) {
       return new WriteTextFileGeneration(targetPath, generationContext)
     }
 
-    return new WriteTextFileGeneration(targetPath, generationContext)
+    const rewriteDirectives = matchAllComments.flatMap((match, index) => match.groups?.coContent !== undefined
+      ? [{
+          index,
+          content: match.groups.coContent || '',
+          prompt: match.groups?.prompt || '',
+          resolver: this,
+          result: '',
+        }]
+      : [],
+    )
 
-    // !NOTE: Temporary disable rewrite
-    // const rewriteDirectives = matchAllComments.flatMap((match, index) => match.groups?.coContent !== undefined
-    //   ? [{
-    //       index,
-    //       content: match.groups.coContent || '',
-    //       prompt: match.groups?.prompt || '',
-    //       resolver: this,
-    //       result: '',
-    //     }]
-    //   : [],
-    // )
-
-    // // TODO: handle duplicate contents
-    // // index solution can not handle because index may change after each rewrite
-    // return new RewriteTextFileGeneration(
-    //   targetPath,
-    //   rewriteDirectives,
-    //   generationContext,
-    // )
+    // TODO: handle duplicate contents
+    // index solution can not handle because index may change after each rewrite
+    return new RewriteTextFileGeneration(
+      targetPath,
+      rewriteDirectives,
+      generationContext,
+    )
   }
 
   rewriteGeneration(content: string, id: number, rewrite: string): string {
     const matchAllResults = [
-      ...content.matchAll(/(?<header>\/\/ co-target(?<prompt>.*)\n)(?<coContent>[\s\S]*?)(?<footer>\n\/\/\sco-target-end)/g),
-      ...content.matchAll(/(?<header><!--\sco-target\s(?<prompt>.*)-->\n)(?<coContent>[\s\S]*?)(?<footer><!--\sco-target-end\s-->)/g),
+      ...content.matchAll(/(?<header>\/\/ co-target(?<prompt>.*)\n)(?<coContent>[\s\S]*?)(?<footer>\/\/\sco-target-end)/g),
+      ...content.matchAll(/(?<header><!--\sco-target\s(?<prompt>.*)-->)(?<coContent>[\s\S]*?)(?<footer><!--\sco-target-end\s-->)/g),
     ]
     if (matchAllResults[id]) {
       const coContent = matchAllResults[id].groups?.coContent
