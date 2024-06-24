@@ -1,5 +1,5 @@
 import { Generation } from '../Generation'
-import { TGenerationContext } from '../types'
+import { TContext } from '../types'
 import { Resolver } from './Resolver'
 
 export type Source = {
@@ -31,10 +31,10 @@ export interface DirectiveResolver {
   ): Source
   resolveGeneration(
     targetPath: string,
-    generationContext: TGenerationContext,
-  ): Generation
+    generationContext: TContext,
+  ): Promise<Generation>
   rewriteGeneration(content: string, id: number, rewrite: string): string
-  isSupportedSource(filename: string): boolean
+  isSupportedSource(filename: string): Promise<boolean>
 }
 
 export type RewriteDirective = {

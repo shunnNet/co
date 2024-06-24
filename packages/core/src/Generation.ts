@@ -1,23 +1,23 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { LLMBuilder } from './builders/llm'
 import { RewriteDirective, Source } from './directive-resolvers/types'
-import { TGenerationContext } from './types'
-import { dirname } from 'path'
-
+import { TContext } from './types'
+import { LocalFsController } from './fs/LocalFsController'
 export class TextFileGeneration {
   public path: string
   public sources: Source[]
   protected builder: LLMBuilder
-  protected context: TGenerationContext
+  protected context: TContext
+  protected fsController: LocalFsController
 
   constructor(
     path: string,
-    generationContext: TGenerationContext,
+    context: TContext,
   ) {
     this.path = path
     this.sources = []
     this.builder = new LLMBuilder()
-    this.context = generationContext
+    this.context = context
+    this.fsController = new LocalFsController()
   }
 
   addSource(source: Source) {
@@ -43,15 +43,17 @@ export class WriteTextFileGeneration extends TextFileGeneration implements Gener
     const prompt = typeof options.getPrompt === 'function'
       ? options.getPrompt(this.sources, this.path)
       : this.getPrompt()
-
+    console.log('prompt', prompt)
     const content = await this.builder.build({
       apiKey: this.context.text.apiKey,
       model: this.context.text.model,
       temperature: this.context.text.temperature,
       prompt,
     })
-    mkdirSync(dirname(this.path), { recursive: true })
-    writeFileSync(this.path, content)
+    await this.fsController.mkdir(
+      this.fsController.getDirname(this.path),
+    )
+    await this.fsController.writeFile(this.path, content)
   }
 
   getPrompt() {
@@ -102,7 +104,7 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
   constructor(
     path: string,
     directives: RewriteDirective[],
-    generationContext: TGenerationContext,
+    generationContext: TContext,
   ) {
     super(path, generationContext)
     this.directives = directives
@@ -113,7 +115,7 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
   }
 
   async generateByDirectives(directives: RewriteDirective[]) {
-    let currentContent = readFileSync(this.path, 'utf-8')
+    let currentContent = await this.fsController.readFile(this.path)
 
     const results = await Promise.allSettled(
       directives.map(async (directive) => {
@@ -121,7 +123,7 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
         const prompt = typeof options.getPrompt === 'function'
           ? options.getPrompt(this.sources, this.path, directive)
           : this.getPrompt(directive)
-
+        console.log('prompt', prompt)
         directive.result = await this.builder.build({
           apiKey: this.context.text.apiKey,
           model: this.context.text.model,
@@ -141,7 +143,7 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
           directive.result,
         )
       })
-    writeFileSync(this.path, currentContent)
+    await this.fsController.writeFile(this.path, currentContent)
   }
 
   getPrompt(directive: RewriteDirective) {

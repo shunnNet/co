@@ -2,21 +2,19 @@ import { Source, DirectiveResolver } from './directive-resolvers/types'
 import { JsResolver } from './directive-resolvers/JsResolver'
 import fg from 'fast-glob'
 import {
-  readFileSync,
-} from 'node:fs'
-import {
   resolve as resolvePath,
 } from 'node:path'
-import chokidar from 'chokidar'
 import { MdResolver } from './directive-resolvers/mdResolver'
 import { Generation, RewriteTextFileGeneration } from './Generation'
-import { TGenerationContext } from './types'
+import { TContext } from './types'
 import { debounce } from './utils'
 import { Resolver } from './directive-resolvers/Resolver'
+import { LocalFsController } from './fs/LocalFsController'
 
 type TCoOptions = {
+  fsController?: LocalFsController
   generation: {
-    text: Partial<TGenerationContext['text']>
+    text: Partial<TContext['text']>
   }
   /**
    * A map of aliases to resolve paths.
@@ -35,20 +33,16 @@ type TCoOptions = {
 
 export class Co {
   resolvers: DirectiveResolver[]
-  watcher?: chokidar.FSWatcher
   sourceDiction: Record<string, Source>
-  generationContext: TGenerationContext
+  context: TContext
   generations: Record<string, Generation>
   generationResovler: Resolver
+  fsController: LocalFsController
 
   constructor(options: TCoOptions) {
-    this.resolvers = [
-      new JsResolver(options.resolve),
-      new MdResolver(options.resolve),
-    ]
-    this.watcher = undefined
     this.sourceDiction = {}
-    this.generationContext = {
+    this.context = {
+      fsController: options.fsController || new LocalFsController(),
       text: {
         apiKey: '',
         model: 'gpt-3.5-turbo',
@@ -59,6 +53,17 @@ export class Co {
     }
     this.generations = {}
     this.generationResovler = new Resolver()
+    this.fsController = new LocalFsController()
+    this.resolvers = [
+      new JsResolver({
+        ...options.resolve,
+        fsController: this.context.fsController,
+      }),
+      new MdResolver({
+        ...options.resolve,
+        fsController: this.context.fsController,
+      }),
+    ]
   }
 
   protected getResolverByPath(path: string) {
@@ -66,12 +71,12 @@ export class Co {
     return resolver
   }
 
-  resolveSourceByPath(path: string): Source | null {
+  async resolveSourceByPath(path: string): Promise<Source | null> {
     const resolver = this.getResolverByPath(path)
     if (!resolver) {
       return null
     }
-    const content = readFileSync(path, 'utf-8')
+    const content = await this.fsController.readFile(path)
     const source = resolver.resolve(content, { filename: path })
     if (!source.directives.length) {
       return null
@@ -91,22 +96,25 @@ export class Co {
     const files = await fg(include, {
       ignore,
     })
-
-    files.forEach((aFilePath) => {
-      const source = this.resolveSourceByPath(aFilePath)
-      if (source) {
-        this.sourceDiction[aFilePath] = source
-      }
-    })
+    await Promise.allSettled(
+      files.map(async (aFilePath) => {
+        const source = await this.resolveSourceByPath(aFilePath)
+        if (source) {
+          this.sourceDiction[aFilePath] = source
+        }
+      }),
+    )
   }
 
   async generateByTargetPaths(targetPaths: string[]) {
     const generations: Record<string, Generation> = {}
 
-    targetPaths.forEach((target) => {
-      const gen = this.generationResovler.resolveGeneration(target, this.generationContext)
-      generations[target] = gen
-    })
+    await Promise.allSettled(
+      targetPaths.map(async (target) => {
+        const gen = await this.generationResovler.resolveGeneration(target, this.context)
+        generations[target] = gen
+      }),
+    )
 
     Object.values(this.sourceDiction).forEach((source) => {
       // !NOTE: temporary disallow source is also a generation target (prevent chain generation)
@@ -144,125 +152,123 @@ export class Co {
    * Watches the specified files for changes and performs ai completion for requests.
    *
    * @param include - The glob pattern or file path to include for watching.
-   * @param ignore - An array of glob patterns or file paths to ignore.
-   */
-  watch(include: string, ignore: string[]) {
-    this.watcher = chokidar.watch(include, {
-      ignored: ignore,
-    })
-    this.watcher.on('ready', () => {
-      console.log('watching files for changes...')
-      if (!this.watcher) {
-        return
-      }
-      const queue: { event: string, changedPath: string }[] = []
-      let running = false
-      const handler = async () => {
-        const _quene = queue.slice()
-        queue.length = 0
+   * @param exclude - An array of glob patterns or file paths to ignore.
+  */
+  watch(include: string, exclude: string[]) {
+    const queue: { event: string, changedPath: string }[] = []
+    let running = false
 
-        const unlinkPaths = _quene.flatMap(
-          ({ event, changedPath }) => event === 'unlink' ? [resolvePath(changedPath)] : [],
-        )
+    const handler = async () => {
+      const _quene = queue.slice()
+      queue.length = 0
 
-        unlinkPaths.forEach((absPath) => {
-          if (this.sourceDiction[absPath]) {
-            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-            delete this.sourceDiction[absPath]
-          }
-          else if (this.generations[absPath]) {
-            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-            delete this.generations[absPath]
-          }
-        })
+      const unlinkPaths = _quene.flatMap(
+        ({ event, changedPath }) => event === 'unlink' ? [resolvePath(changedPath)] : [],
+      )
 
-        const updatedPathInfoList = _quene
-          .flatMap(
-            ({ event, changedPath }) => {
-              if (event === 'add' || event === 'change') {
-                const absPath = resolvePath(changedPath)
-                const source = this.resolveSourceByPath(absPath)
-                return [{ absPath, source }]
-              }
-              else {
-                return []
-              }
-            },
-          )
-
-        const pathsNeedRegenerateBySource = updatedPathInfoList.filter(
-          ({ source }) => source,
-        ) as { absPath: string, source: Source }[]
-
-        pathsNeedRegenerateBySource.forEach(({ absPath, source }) => {
-          this.sourceDiction[absPath] = source
-        })
-        const targetPaths = pathsNeedRegenerateBySource.flatMap(
-          ({ source }) => source.directives.map(d => d.targetPath),
-        )
-        if (targetPaths.length) {
-          console.log('Generating files from sources...\n', targetPaths.join('\n'))
-          await this.generateByTargetPaths(targetPaths)
+      unlinkPaths.forEach((absPath) => {
+        if (this.sourceDiction[absPath]) {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete this.sourceDiction[absPath]
         }
-
-        const pathsNoSource = updatedPathInfoList.filter(
-          ({ source }) => !source,
-        ).map(({ absPath }) => absPath)
-
-        // !NOTE: temporary disable rewrite
-        await Promise.allSettled(pathsNoSource.map(async (absPath) => {
-          const gen = this.generationResovler.resolveGeneration(absPath, this.generationContext)
-          if (!(gen instanceof RewriteTextFileGeneration)) {
-            // console.log('Not rewrite generation: ', absPath)
-            return
-          }
-          if (!this.generations[absPath]) {
-            Object.values(this.sourceDiction).forEach((source) => {
-              if (source.directives.some(d => d.targetPath === absPath)) {
-                gen.addSource(source)
-              }
-            })
-            this.generations[absPath] = gen
-          }
-          else {
-            gen.addSources(this.generations[absPath].sources)
-          }
-
-          const { directives } = this.generations[absPath] as RewriteTextFileGeneration
-          // TODO: This is a temporary way. It's dangerous to update directive relying on object references.
-          gen.directives.forEach((d) => {
-            const notChangedDirective = directives.find((od) => {
-              return od.result.trim() === d.content.trim() && od.prompt === d.prompt
-            })
-            if (notChangedDirective) {
-              d.result = notChangedDirective.result
-            }
-          })
-          const directivesNeedRegenerated = gen.directives.filter(d => d.result.trim() !== d.content.trim())
-          if (directivesNeedRegenerated.length) {
-            console.log('rewrite: ', absPath)
-            await gen.generateByDirectives(directivesNeedRegenerated)
-          }
-          this.generations[absPath] = gen
-        }))
-      }
-      const debouncedHandler = debounce(async () => {
-        running = true
-        console.log('handling changes...')
-        await handler()
-        console.log('done handling changes...')
-        running = false
-        if (queue.length) {
-          debouncedHandler()
-        }
-      }, 2000)
-      this.watcher.on('all', (event, changedPath) => {
-        console.log(event, changedPath)
-        queue.push({ event, changedPath })
-        if (!running) {
-          debouncedHandler()
+        else if (this.generations[absPath]) {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete this.generations[absPath]
         }
       })
+
+      const updatedPathInfoList: { absPath: string, source: Source }[] = []
+
+      await Promise.all(
+        _quene.map(
+          async ({ event, changedPath }) => {
+            if (event === 'add' || event === 'change') {
+              const absPath = await this.fsController.resolvePath('.', changedPath)
+              const source = await this.resolveSourceByPath(absPath)
+              if (source) {
+                return updatedPathInfoList.push({ absPath, source })
+              }
+            }
+          },
+        ))
+
+      const pathsNeedRegenerateBySource = updatedPathInfoList.filter(
+        ({ source }) => source,
+      ) as { absPath: string, source: Source }[]
+
+      pathsNeedRegenerateBySource.forEach(({ absPath, source }) => {
+        this.sourceDiction[absPath] = source
+      })
+      const targetPaths = pathsNeedRegenerateBySource.flatMap(
+        ({ source }) => source.directives.map(d => d.targetPath),
+      )
+      if (targetPaths.length) {
+        console.log('Generating files from sources...\n', targetPaths.join('\n'))
+        await this.generateByTargetPaths(targetPaths)
+      }
+
+      const pathsNoSource = updatedPathInfoList.filter(
+        ({ source }) => !source,
+      ).map(({ absPath }) => absPath)
+
+      // !NOTE: temporary disable rewrite
+      await Promise.allSettled(pathsNoSource.map(async (absPath) => {
+        const gen = await this.generationResovler.resolveGeneration(absPath, this.context)
+        if (!(gen instanceof RewriteTextFileGeneration)) {
+          // console.log('Not rewrite generation: ', absPath)
+          return
+        }
+        if (!this.generations[absPath]) {
+          Object.values(this.sourceDiction).forEach((source) => {
+            if (source.directives.some(d => d.targetPath === absPath)) {
+              gen.addSource(source)
+            }
+          })
+          this.generations[absPath] = gen
+        }
+        else {
+          gen.addSources(this.generations[absPath].sources)
+        }
+
+        const { directives } = this.generations[absPath] as RewriteTextFileGeneration
+        // TODO: This is a temporary way. It's dangerous to update directive relying on object references.
+        gen.directives.forEach((d) => {
+          const notChangedDirective = directives.find((od) => {
+            console.log('compare: ', od.result.trim(), d.content.trim())
+            return od.result.trim() === d.content.trim() && od.prompt === d.prompt
+          })
+          if (notChangedDirective) {
+            d.result = notChangedDirective.result
+          }
+        })
+        const directivesNeedRegenerated = gen.directives.filter(d => d.result.trim() !== d.content.trim())
+        if (directivesNeedRegenerated.length) {
+          console.log('rewrite: ', absPath)
+          await gen.generateByDirectives(directivesNeedRegenerated)
+        }
+        this.generations[absPath] = gen
+      }))
+    }
+    const debouncedHandler = debounce(async () => {
+      running = true
+      console.log('handling changes...')
+      await handler()
+      console.log('done handling changes...')
+      running = false
+      if (queue.length) {
+        debouncedHandler()
+      }
+    }, 2000)
+
+    this.fsController.watch({
+      include,
+      exclude,
+    }, (event, path) => {
+      console.log(event, path)
+      queue.push({ event, changedPath: path })
+      if (!running) {
+        debouncedHandler()
+      }
     })
   }
 
@@ -270,9 +276,6 @@ export class Co {
    * Removes all listeners from watched files.
    */
   unwatch() {
-    if (this.watcher) {
-      this.watcher.close()
-      this.watcher = undefined
-    }
+    this.fsController.unwatch()
   }
 }

@@ -1,41 +1,43 @@
 import {
-  extname as getExtname,
-  dirname as getDirname,
-} from 'node:path'
-import { existsSync, readFileSync } from 'node:fs'
-import {
   Generation,
   RewriteTextFileGeneration,
   WriteTextFileGeneration,
 } from '../Generation'
-import { TGenerationContext } from '../types'
+import { TContext } from '../types'
 import querystring from 'node:querystring'
+
 import { PathResolver } from '../PathResolver'
+
+import { LocalFsController } from '../fs/LocalFsController'
 
 export type TResolverOptions = {
   alias?: Record<string, string>
+  fsController?: LocalFsController
+
 }
 export class Resolver {
   public supportedSourceExtensions: string[] = []
   private pathResolver: PathResolver
+  protected fsController: LocalFsController
 
   constructor(options: TResolverOptions = {}) {
     this.pathResolver = new PathResolver(options.alias)
+    this.fsController = options.fsController || new LocalFsController()
   }
 
-  isSupportedSource(filename: string) {
-    const ext = getExtname(filename).slice(1)
+  async isSupportedSource(filename: string) {
+    const ext = await this.fsController.getExtname(filename).slice(1)
     return this.supportedSourceExtensions.includes(ext)
   }
 
-  resolveGeneration(
+  async resolveGeneration(
     targetPath: string,
-    generationContext: TGenerationContext,
-  ): Generation {
-    if (!existsSync(targetPath)) {
+    generationContext: TContext,
+  ): Promise<Generation> {
+    if (!await this.fsController.exists(targetPath)) {
       return new WriteTextFileGeneration(targetPath, generationContext)
     }
-    const content = readFileSync(targetPath, 'utf-8')
+    const content = await this.fsController.readFile(targetPath)
     const matchAllComments = [
       ...content.matchAll(/\/\/ co-target(?<prompt>.*)\n(?<coContent>[\s\S]*?)\/\/\sco-target-end/g),
       ...content.matchAll(/<!--\sco-target\s(?<prompt>.*)-->(?<coContent>[\s\S]*?)<!--\sco-target-end\s-->/g),
@@ -96,7 +98,7 @@ export class Resolver {
   }
 
   ensureAbsolutePath(baseFileName: string, relatedPath: string) {
-    const baseExtension = getExtname(baseFileName).split('.').at(-1)
+    const baseExtension = this.fsController.getExtname(baseFileName).split('.').at(-1)
     if (!baseExtension) {
       throw new Error('baseFileName must have extension')
     }
@@ -107,9 +109,9 @@ export class Resolver {
     //   throw new Error('Not support node_modules import')
     // }
 
-    const baseDir = getDirname(baseFileName)
+    const baseDir = this.fsController.getDirname(baseFileName)
 
-    if (getExtname(relatedPath)) {
+    if (this.fsController.getExtname(relatedPath)) {
       return this.pathResolver.resolveAlias(baseDir, relatedPath)
     }
     else {

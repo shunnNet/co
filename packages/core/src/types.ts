@@ -1,6 +1,8 @@
 import { RewriteDirective, Source } from './directive-resolvers/types'
+import { LocalFsController } from './fs/LocalFsController'
 
-export type TGenerationContext = {
+export type TContext = {
+  fsController: LocalFsController
   text: {
     apiKey: string
     model: string
