@@ -44,14 +44,17 @@ export class LocalFsController implements FsController {
   }
 
   watch(
-    options: { include: string, exclude: string[] },
+    options: {
+      includes: string | string[]
+      excludes: string | string[]
+    },
     callback: (event: string, path: string) => void,
   ): void {
     if (this.watcher) {
       this.unwatch()
     }
-    this.watcher = chokidar.watch(options.include, {
-      ignored: options.exclude,
+    this.watcher = chokidar.watch(options.includes, {
+      ignored: options.excludes,
       persistent: true,
     })
 

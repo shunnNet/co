@@ -7,11 +7,13 @@ import {
 import { MdResolver } from './directive-resolvers/mdResolver'
 import { Generation, RewriteTextFileGeneration } from './Generation'
 import { TContext } from './types'
-import { debounce } from './utils'
+import { debounce, ensureArray } from './utils'
 import { Resolver } from './directive-resolvers/Resolver'
 import { LocalFsController } from './fs/LocalFsController'
 
 type TCoOptions = {
+  includes: string | string[]
+  excludes: string | string[]
   fsController?: LocalFsController
   generation: {
     text: Partial<TContext['text']>
@@ -29,6 +31,7 @@ type TCoOptions = {
   resolve?: {
     alias?: Record<string, string>
   }
+
 }
 
 export class Co {
@@ -38,8 +41,10 @@ export class Co {
   generations: Record<string, Generation>
   generationResovler: Resolver
   fsController: LocalFsController
+  options: TCoOptions
 
   constructor(options: TCoOptions) {
+    this.options = options
     this.sourceDiction = {}
     this.context = {
       fsController: options.fsController || new LocalFsController(),
@@ -91,10 +96,14 @@ export class Co {
    * @param include - The glob pattern to match the files to be scanned.
    * @param ignore - An array of glob patterns to exclude files from being scanned.
    */
-  async scan(include: string, ignore: string[]) {
+  async scan(
+    includes: string | string[] = this.options.includes,
+    excludes?: string | string[],
+  ) {
+    const excludesArray = excludes ? ensureArray(excludes) : []
     this.sourceDiction = {}
-    const files = await fg(include, {
-      ignore,
+    const files = await fg(includes, {
+      ignore: excludesArray,
     })
     await Promise.allSettled(
       files.map(async (aFilePath) => {
@@ -154,7 +163,7 @@ export class Co {
    * @param include - The glob pattern or file path to include for watching.
    * @param exclude - An array of glob patterns or file paths to ignore.
   */
-  watch(include: string, exclude: string[]) {
+  watch(includes?: string[], excludes?: string[]) {
     const queue: { event: string, changedPath: string }[] = []
     let running = false
 
@@ -261,8 +270,8 @@ export class Co {
     }, 2000)
 
     this.fsController.watch({
-      include,
-      exclude,
+      includes: includes || this.options.includes,
+      excludes: excludes || this.options.excludes,
     }, (event, path) => {
       console.log(event, path)
       queue.push({ event, changedPath: path })

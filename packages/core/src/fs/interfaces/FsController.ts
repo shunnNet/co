@@ -6,6 +6,12 @@ export interface FsController {
   resolvePath(baseDir: string, relativePath: string): string
   getDirname(path: string): string
   getExtname(path: string): string
-  watch(options: { include: string, exclude: string[] }, callback: (event: string, path: string) => void): void
+  watch(
+    options: {
+      includes: string | string[]
+      excludes: string | string[]
+    },
+    callback: (event: string, path: string) => void
+  ): void
   unwatch(): void
 }
