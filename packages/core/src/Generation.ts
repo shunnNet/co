@@ -1,22 +1,22 @@
 import { LLMBuilder } from './builders/llm'
 import { RewriteDirective, Source } from './directive-resolvers/types'
-import { TContext } from './types'
+import { TCoOptions } from './types'
 import { LocalFsController } from './fs/LocalFsController'
 export class TextFileGeneration {
   public path: string
   public sources: Source[]
   protected builder: LLMBuilder
-  protected context: TContext
+  protected coOptions: TCoOptions
   protected fsController: LocalFsController
 
   constructor(
     path: string,
-    context: TContext,
+    coOptions: TCoOptions,
   ) {
     this.path = path
     this.sources = []
     this.builder = new LLMBuilder()
-    this.context = context
+    this.coOptions = coOptions
     this.fsController = new LocalFsController()
   }
 
@@ -38,16 +38,16 @@ export interface Generation {
 
 export class WriteTextFileGeneration extends TextFileGeneration implements Generation {
   async generate() {
-    const { text: options } = this.context
+    const { text: options } = this.coOptions.generation
 
     const prompt = typeof options.getPrompt === 'function'
       ? options.getPrompt(this.sources, this.path)
       : this.getPrompt()
     console.log('prompt', prompt)
     const content = await this.builder.build({
-      apiKey: this.context.text.apiKey,
-      model: this.context.text.model,
-      temperature: this.context.text.temperature,
+      apiKey: options.apiKey,
+      model: options.model,
+      temperature: options.temperature,
       prompt,
     })
     await this.fsController.mkdir(
@@ -104,7 +104,7 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
   constructor(
     path: string,
     directives: RewriteDirective[],
-    generationContext: TContext,
+    generationContext: TCoOptions,
   ) {
     super(path, generationContext)
     this.directives = directives
@@ -119,15 +119,15 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
 
     const results = await Promise.allSettled(
       directives.map(async (directive) => {
-        const options = this.context.text
+        const { text: options } = this.coOptions.generation
         const prompt = typeof options.getPrompt === 'function'
           ? options.getPrompt(this.sources, this.path, directive)
           : this.getPrompt(directive)
         console.log('prompt', prompt)
         directive.result = await this.builder.build({
-          apiKey: this.context.text.apiKey,
-          model: this.context.text.model,
-          temperature: this.context.text.temperature,
+          apiKey: options.apiKey,
+          model: options.model,
+          temperature: options.temperature,
           prompt,
         })
         return directive

@@ -6,67 +6,51 @@ import {
 } from 'node:path'
 import { MdResolver } from './directive-resolvers/mdResolver'
 import { Generation, RewriteTextFileGeneration } from './Generation'
-import { TContext } from './types'
 import { debounce, ensureArray } from './utils'
 import { Resolver } from './directive-resolvers/Resolver'
 import { LocalFsController } from './fs/LocalFsController'
-
-type TCoOptions = {
-  includes: string | string[]
-  excludes: string | string[]
-  fsController?: LocalFsController
-  generation: {
-    text: Partial<TContext['text']>
-  }
-  /**
-   * A map of aliases to resolve paths.
-   * example:
-   *  {
-   *  '@': './src',
-   *  '~': './src',
-   *  '~server: './src/server',
-   *  '~client: './src/client
-   * }
-   */
-  resolve?: {
-    alias?: Record<string, string>
-  }
-
-}
+import defu from 'defu'
+import { TCoOptions } from './types'
 
 export class Co {
   resolvers: DirectiveResolver[]
   sourceDiction: Record<string, Source>
-  context: TContext
   generations: Record<string, Generation>
   generationResovler: Resolver
   fsController: LocalFsController
   options: TCoOptions
 
-  constructor(options: TCoOptions) {
-    this.options = options
-    this.sourceDiction = {}
-    this.context = {
-      fsController: options.fsController || new LocalFsController(),
-      text: {
-        apiKey: '',
-        model: 'gpt-3.5-turbo',
-        temperature: 0,
-        getPrompt: null,
-        ...options.generation.text,
+  constructor(options: Partial<TCoOptions>) {
+    this.options = defu(options, {
+      baseDir: process.cwd(),
+      fsController: new LocalFsController(),
+      includes: ['**/*'],
+      excludes: ['**/node_modules/**', '**/.vscode', '**/.git/**'],
+      generation: {
+        text: {
+          apiKey: '',
+          model: 'gpt-3.5-turbo',
+          temperature: 0,
+          getPrompt: null,
+        },
       },
-    }
+      resolve: {
+        alias: {},
+      },
+
+    })
+    this.sourceDiction = {}
     this.generations = {}
     this.generationResovler = new Resolver()
-    this.fsController = new LocalFsController()
+    this.fsController = this.options.fsController
     this.resolvers = [
       new JsResolver({
         ...options.resolve,
-        fsController: this.context.fsController,
+        fsController: this.options.fsController,
       }),
       new MdResolver({
         ...options.resolve,
-        fsController: this.context.fsController,
+        fsController: this.options.fsController,
       }),
     ]
   }
@@ -103,6 +87,7 @@ export class Co {
     const excludesArray = excludes ? ensureArray(excludes) : []
     this.sourceDiction = {}
     const files = await fg(includes, {
+      cwd: this.options.baseDir,
       ignore: excludesArray,
     })
     await Promise.allSettled(
@@ -120,7 +105,7 @@ export class Co {
 
     await Promise.allSettled(
       targetPaths.map(async (target) => {
-        const gen = await this.generationResovler.resolveGeneration(target, this.context)
+        const gen = await this.generationResovler.resolveGeneration(target, this.options)
         generations[target] = gen
       }),
     )
@@ -192,7 +177,7 @@ export class Co {
         _quene.map(
           async ({ event, changedPath }) => {
             if (event === 'add' || event === 'change') {
-              const absPath = await this.fsController.resolvePath('.', changedPath)
+              const absPath = await this.fsController.resolvePath(this.options.baseDir, changedPath)
               const source = await this.resolveSourceByPath(absPath)
               if (source) {
                 return updatedPathInfoList.push({ absPath, source })
@@ -222,7 +207,7 @@ export class Co {
 
       // !NOTE: temporary disable rewrite
       await Promise.allSettled(pathsNoSource.map(async (absPath) => {
-        const gen = await this.generationResovler.resolveGeneration(absPath, this.context)
+        const gen = await this.generationResovler.resolveGeneration(absPath, this.options)
         if (!(gen instanceof RewriteTextFileGeneration)) {
           // console.log('Not rewrite generation: ', absPath)
           return
@@ -272,6 +257,7 @@ export class Co {
     this.fsController.watch({
       includes: includes || this.options.includes,
       excludes: excludes || this.options.excludes,
+      cwd: this.options.baseDir,
     }, (event, path) => {
       console.log(event, path)
       queue.push({ event, changedPath: path })

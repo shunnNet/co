@@ -22,7 +22,7 @@ export class PathResolver {
     return this.fsController.resolvePath(baseDir, path)
   }
 
-  resolve(baseDir: string, path: string, ext: string) {
-    return this.fsController.resolvePath(baseDir, path + '.' + ext)
+  resolve(baseDir: string, path: string) {
+    return this.fsController.resolvePath(baseDir, path)
   }
 }

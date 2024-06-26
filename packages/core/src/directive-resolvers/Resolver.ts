@@ -3,7 +3,7 @@ import {
   RewriteTextFileGeneration,
   WriteTextFileGeneration,
 } from '../Generation'
-import { TContext } from '../types'
+import { TCoOptions } from '../types'
 import querystring from 'node:querystring'
 
 import { PathResolver } from '../PathResolver'
@@ -32,7 +32,7 @@ export class Resolver {
 
   async resolveGeneration(
     targetPath: string,
-    generationContext: TContext,
+    generationContext: TCoOptions,
   ): Promise<Generation> {
     if (!await this.fsController.exists(targetPath)) {
       return new WriteTextFileGeneration(targetPath, generationContext)
@@ -121,14 +121,14 @@ export class Resolver {
       if (qsObj['co-ext']) {
         const ext = Array.isArray(qsObj['co-ext']) ? qsObj['co-ext'][0] : qsObj['co-ext']
         if ('co-index' in qsObj) {
-          return this.pathResolver.resolve(baseDir, pathWithoutQs + '/index', ext)
+          return this.pathResolver.resolveAlias(baseDir, pathWithoutQs + '/index' + '.' + ext)
         }
         else {
-          return this.pathResolver.resolve(baseDir, pathWithoutQs, ext)
+          return this.pathResolver.resolveAlias(baseDir, pathWithoutQs + '.' + ext)
         }
       }
       else {
-        return this.pathResolver.resolve(baseDir, pathWithoutQs, 'txt')
+        return this.pathResolver.resolveAlias(baseDir, pathWithoutQs + '.' + 'txt')
       }
     }
   }
