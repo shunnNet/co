@@ -104,9 +104,9 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
   constructor(
     path: string,
     directives: RewriteDirective[],
-    generationContext: TCoOptions,
+    coOptions: TCoOptions,
   ) {
-    super(path, generationContext)
+    super(path, coOptions)
     this.directives = directives
   }
 

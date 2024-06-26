@@ -32,10 +32,10 @@ export class Resolver {
 
   async resolveGeneration(
     targetPath: string,
-    generationContext: TCoOptions,
+    coOptions: TCoOptions,
   ): Promise<Generation> {
     if (!await this.fsController.exists(targetPath)) {
-      return new WriteTextFileGeneration(targetPath, generationContext)
+      return new WriteTextFileGeneration(targetPath, coOptions)
     }
     const content = await this.fsController.readFile(targetPath)
     const matchAllComments = [
@@ -43,7 +43,7 @@ export class Resolver {
       ...content.matchAll(/<!--\sco-target\s(?<prompt>.*)-->(?<coContent>[\s\S]*?)<!--\sco-target-end\s-->/g),
     ]
     if (!matchAllComments.length) {
-      return new WriteTextFileGeneration(targetPath, generationContext)
+      return new WriteTextFileGeneration(targetPath, coOptions)
     }
 
     const rewriteDirectives = matchAllComments.flatMap((match, index) => match.groups?.coContent !== undefined
@@ -62,7 +62,7 @@ export class Resolver {
     return new RewriteTextFileGeneration(
       targetPath,
       rewriteDirectives,
-      generationContext,
+      coOptions,
     )
   }
 
