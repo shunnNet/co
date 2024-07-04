@@ -23,7 +23,7 @@ export class Co {
   constructor(options: Partial<TCoOptions>) {
     this.options = defu(options, {
       baseDir: process.cwd(),
-      fsController: new LocalFsController(),
+      fsController: new LocalFsController({ alias: options.resolve?.alias }),
       includes: ['**/*'],
       excludes: ['**/node_modules/**', '**/.vscode', '**/.git/**'],
       generation: {

@@ -4,6 +4,7 @@ export interface FsController {
   mkdir(path: string): Promise<void>
   exists(path: string): Promise<boolean>
   resolvePath(baseDir: string, relativePath: string): string
+  resolveAlias(baseDir: string, path: string): string
   getDirname(path: string): string
   getExtname(path: string): string
   watch(

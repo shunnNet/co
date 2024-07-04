@@ -5,7 +5,11 @@ import { FsController } from './interfaces/FsController'
 
 export class LocalFsController implements FsController {
   watcher: chokidar.FSWatcher | null
-  constructor() {
+  alias: Record<string, string>
+  constructor(
+    alias: Record<string, string> = {},
+  ) {
+    this.alias = alias
     this.watcher = null
   }
 
@@ -33,6 +37,16 @@ export class LocalFsController implements FsController {
 
   resolvePath(baseDir: string, relativePath: string): string {
     return resolve(baseDir, relativePath)
+  }
+
+  resolveAlias(baseDir: string, path: string) {
+    const aliasKeys = Object.keys(this.alias)
+    for (const alias of aliasKeys) {
+      if (path.startsWith(alias)) {
+        return this.resolvePath(baseDir, path.replace(alias, this.alias[alias]))
+      }
+    }
+    return this.resolvePath(baseDir, path)
   }
 
   getDirname(path: string): string {

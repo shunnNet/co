@@ -6,8 +6,6 @@ import {
 import { TCoOptions } from '../types'
 import querystring from 'node:querystring'
 
-import { PathResolver } from '../PathResolver'
-
 import { LocalFsController } from '../fs/LocalFsController'
 
 export type TResolverOptions = {
@@ -17,11 +15,9 @@ export type TResolverOptions = {
 }
 export class Resolver {
   public supportedSourceExtensions: string[] = []
-  private pathResolver: PathResolver
   public fsController: LocalFsController
 
   constructor(options: TResolverOptions = {}) {
-    this.pathResolver = new PathResolver(options.alias)
     this.fsController = options.fsController || new LocalFsController()
   }
 
@@ -112,7 +108,7 @@ export class Resolver {
     const baseDir = this.fsController.getDirname(baseFileName)
 
     if (this.fsController.getExtname(relatedPath)) {
-      return this.pathResolver.resolveAlias(baseDir, relatedPath)
+      return this.fsController.resolveAlias(baseDir, relatedPath)
     }
     else {
       const [pathWithoutQs, qs] = relatedPath.split('?')
@@ -121,14 +117,14 @@ export class Resolver {
       if (qsObj['co-ext']) {
         const ext = Array.isArray(qsObj['co-ext']) ? qsObj['co-ext'][0] : qsObj['co-ext']
         if ('co-index' in qsObj) {
-          return this.pathResolver.resolveAlias(baseDir, pathWithoutQs + '/index' + '.' + ext)
+          return this.fsController.resolveAlias(baseDir, pathWithoutQs + '/index' + '.' + ext)
         }
         else {
-          return this.pathResolver.resolveAlias(baseDir, pathWithoutQs + '.' + ext)
+          return this.fsController.resolveAlias(baseDir, pathWithoutQs + '.' + ext)
         }
       }
       else {
-        return this.pathResolver.resolveAlias(baseDir, pathWithoutQs + '.' + 'txt')
+        return this.fsController.resolveAlias(baseDir, pathWithoutQs + '.' + 'txt')
       }
     }
   }
