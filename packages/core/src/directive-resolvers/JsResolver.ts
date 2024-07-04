@@ -69,7 +69,7 @@ export class JsResolver extends Resolver implements DirectiveResolver {
       path: options.filename,
       content,
       directives: [
-        ...allImports.map(targetPath => ({ targetPath, fragments: '' })),
+        ...allImports.map(targetPath => ({ targetPath, fragment: '' })),
         ...fragments,
       ],
     }

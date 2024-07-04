@@ -18,7 +18,7 @@ export type TResolverOptions = {
 export class Resolver {
   public supportedSourceExtensions: string[] = []
   private pathResolver: PathResolver
-  protected fsController: LocalFsController
+  public fsController: LocalFsController
 
   constructor(options: TResolverOptions = {}) {
     this.pathResolver = new PathResolver(options.alias)
