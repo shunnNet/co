@@ -4,7 +4,7 @@
   "version": "0.5.0-alpha.2",
   "description": "",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
     "lint": "eslint .",
     "lint:fix": "eslint --fix ."
   },
@@ -21,6 +21,7 @@
     "@types/eslint__js": "^8.42.3",
     "@types/node": "^20.14.2",
     "typescript-eslint": "^7.13.0",
-    "unbuild": "^2.0.0"
+    "unbuild": "^2.0.0",
+    "vitest": "^1.6.0"
   }
 }
