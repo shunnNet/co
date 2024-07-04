@@ -15,4 +15,11 @@ export interface FsController {
     callback: (event: string, path: string) => void
   ): void
   unwatch(): void
+  glob(
+    includes: string | string[],
+    options: {
+      cwd?: string
+      ignore?: string | string[]
+    }
+  ): Promise<string[]>
 }

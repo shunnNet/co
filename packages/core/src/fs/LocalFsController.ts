@@ -2,14 +2,18 @@ import { promises as fs } from 'fs'
 import { resolve, dirname, extname } from 'path'
 import chokidar from 'chokidar'
 import { FsController } from './interfaces/FsController'
+import fg from 'fast-glob'
 
+type TFsOptions = {
+  alias: Record<string, string>
+}
 export class LocalFsController implements FsController {
   watcher: chokidar.FSWatcher | null
   alias: Record<string, string>
   constructor(
-    alias: Record<string, string> = {},
+    options: Partial<TFsOptions> = {},
   ) {
-    this.alias = alias
+    this.alias = options.alias || {}
     this.watcher = null
   }
 
@@ -55,6 +59,20 @@ export class LocalFsController implements FsController {
 
   getExtname(path: string): string {
     return extname(path)
+  }
+
+  async glob(
+    includes: string | string[],
+    options: {
+      cwd?: string
+      ignore?: string | string[]
+    } = {},
+  ): Promise<string[]> {
+    const { ignore, cwd } = options
+    return await fg(includes, {
+      cwd,
+      ignore: Array.isArray(ignore) ? ignore : !ignore ? undefined : [ignore],
+    })
   }
 
   watch(
