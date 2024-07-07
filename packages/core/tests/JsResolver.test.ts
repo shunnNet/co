@@ -1,9 +1,14 @@
 import { test, expect } from 'vitest'
 import { JsResolver } from '../src/directive-resolvers/JsResolver'
 import { SourceDirective } from '../src/directive-resolvers/types'
-
+import { LocalFsController } from '../src/fs/LocalFsController'
+function createResolver() {
+  return new JsResolver({
+    fsController: new LocalFsController(),
+  })
+}
 test('Should resolve single import', () => {
-  const resolver = new JsResolver()
+  const resolver = createResolver()
   const content = `
 // co
 import { a } from './a.js'
@@ -24,7 +29,7 @@ import { a } from './a.js'
 })
 
 test('Should resolve multiple imports', () => {
-  const resolver = new JsResolver()
+  const resolver = createResolver()
   const content = `
 // co
 import { a } from './a.js'
@@ -45,7 +50,7 @@ import { b } from './b.js'
 // Support means that resolver should resolve the directive in these extensions correctly
 // But can still resolve in other extensions
 test('Should resolve .ts, .tsx, .js, .jsx, .cjs, .mjs, .vue', () => {
-  const resolver = new JsResolver()
+  const resolver = createResolver()
   const content = `
 // co
 import { a } from './a.js'
@@ -59,7 +64,7 @@ import { b } from './b.js'
   })
 })
 test('Should not resolve import outside of co block', () => {
-  const resolver = new JsResolver()
+  const resolver = createResolver()
   const content = `
 // co
 import { a } from './a.js'
@@ -71,7 +76,7 @@ import { b } from './b.js'
   expect(result.directives.find(d => d.targetPath === '/root/b.js')).toBeUndefined()
 })
 test('Should resolve import with side effect', () => {
-  const resolver = new JsResolver()
+  const resolver = createResolver()
   const content = `
   // co
   import './a.js'
@@ -85,7 +90,7 @@ test('Should resolve import with side effect', () => {
 })
 
 test('Should resolve import with side effect and without side effect', () => {
-  const resolver = new JsResolver()
+  const resolver = createResolver()
   const content = `
   // co
   import './a.js'
@@ -99,7 +104,7 @@ test('Should resolve import with side effect and without side effect', () => {
   ))
 })
 test('Should resolve require', () => {
-  const resolver = new JsResolver()
+  const resolver = createResolver()
   const content = `
   // co
   require('./a.js')
@@ -113,7 +118,7 @@ test('Should resolve require', () => {
 })
 
 test('Should correctly resolve co-source', () => {
-  const resolver = new JsResolver()
+  const resolver = createResolver()
   const content = `
  // co-source path:/root/a.js
 console.log('a')

@@ -2,12 +2,16 @@ import { Resolver } from '../src/directive-resolvers/Resolver'
 import { describe, test, expect } from 'vitest'
 import { TCoOptions } from '../src/types'
 import { LocalFsController } from '../src/fs/LocalFsController'
-import { RewriteTextFileGeneration, WriteTextFileGeneration } from '../src/Generation'
+import { RewriteTextFileGeneration, WriteTextFileGeneration } from '../src/generations/TextGeneration'
 
 const resolverOptions = {
-  alias: {
-    '~': '/root/src',
-  },
+  fsController: new LocalFsController(
+    {
+      alias: {
+        '~': '/root/src',
+      },
+    },
+  ),
 }
 const coOptions: TCoOptions = {
   baseDir: '/root',
@@ -47,14 +51,32 @@ describe('resolveGeneration', () => {
   test('Should return WriteTextFileGeneration if the target file does not exist', async () => {
     const resolver = new Resolver(resolverOptions)
     resolver.fsController.exists = async () => false
-    const result = await resolver.resolveGeneration('test.js', coOptions)
+    const result = await resolver.resolveGeneration(
+      'test.js',
+      {
+        ...coOptions.generation.text,
+        fs: coOptions.fsController,
+        builder: {
+          build: async () => 'test',
+        },
+      },
+    )
     expect(result).toBeInstanceOf(WriteTextFileGeneration)
   })
   test('Should return WriteTextFileGeneration if the target file does not contain any directives', async () => {
     const resolver = new Resolver(resolverOptions)
     resolver.fsController.exists = async () => true
     resolver.fsController.readFile = async () => 'test'
-    const result = await resolver.resolveGeneration('test.js', coOptions)
+    const result = await resolver.resolveGeneration(
+      'test.js',
+      {
+        ...coOptions.generation.text,
+        fs: coOptions.fsController,
+        builder: {
+          build: async () => 'test',
+        },
+      },
+    )
     expect(result).toBeInstanceOf(WriteTextFileGeneration)
   })
   test('Should return RewriteTextFileGeneration if the target file contains directives', async () => {
@@ -64,7 +86,16 @@ describe('resolveGeneration', () => {
 // co-target
 test
 // co-target-end`
-    const result = await resolver.resolveGeneration('test.js', coOptions)
+    const result = await resolver.resolveGeneration(
+      'test.js',
+      {
+        ...coOptions.generation.text,
+        fs: coOptions.fsController,
+        builder: {
+          build: async () => 'test',
+        },
+      },
+    )
     expect(result).toBeInstanceOf(RewriteTextFileGeneration)
   })
   test('Should contain correct result in RewriteTextFileGeneration', async () => {
@@ -82,7 +113,14 @@ test 2
 test 3
 <!-- co-target-end -->
 `
-    const result = await resolver.resolveGeneration('test.js', coOptions) as RewriteTextFileGeneration
+    const result = await resolver.resolveGeneration(
+      'test.js',
+      {
+        ...coOptions.generation.text,
+        fs: coOptions.fsController,
+        builder: { build: async () => 'test' },
+      },
+    ) as RewriteTextFileGeneration
     expect(result).toBeInstanceOf(RewriteTextFileGeneration)
     expect(result.directives).toEqual([
       {

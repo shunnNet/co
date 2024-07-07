@@ -3,7 +3,7 @@ import { Resolver } from './Resolver'
 import { TResolverOptions } from './Resolver'
 
 export class MdResolver extends Resolver implements DirectiveResolver {
-  constructor(options: TResolverOptions = {}) {
+  constructor(options: TResolverOptions) {
     super(options)
     this.supportedSourceExtensions = ['md']
   }

@@ -5,12 +5,14 @@ import {
   resolve as resolvePath,
 } from 'node:path'
 import { MdResolver } from './directive-resolvers/mdResolver'
-import { Generation, RewriteTextFileGeneration } from './Generation'
+import { RewriteTextFileGeneration } from './generations/TextGeneration'
 import { debounce, ensureArray } from './utils'
 import { Resolver } from './directive-resolvers/Resolver'
 import { LocalFsController } from './fs/LocalFsController'
 import defu from 'defu'
 import { TCoOptions } from './types'
+import { Generation } from './generations/types'
+import { LLMBuilder } from './builders/llm'
 
 export class Co {
   resolvers: DirectiveResolver[]
@@ -23,7 +25,7 @@ export class Co {
   constructor(options: Partial<TCoOptions>) {
     this.options = defu(options, {
       baseDir: process.cwd(),
-      fsController: new LocalFsController({ alias: options.resolve?.alias }),
+      fsController: new LocalFsController(),
       includes: ['**/*'],
       excludes: ['**/node_modules/**', '**/.vscode', '**/.git/**'],
       generation: {
@@ -37,11 +39,12 @@ export class Co {
       resolve: {
         alias: {},
       },
-
     })
     this.sourceDiction = {}
     this.generations = {}
-    this.generationResovler = new Resolver()
+    this.generationResovler = new Resolver({
+      fsController: this.options.fsController,
+    })
     this.fsController = this.options.fsController
     this.resolvers = [
       new JsResolver({
@@ -53,6 +56,7 @@ export class Co {
         fsController: this.options.fsController,
       }),
     ]
+    this.fsController.setAlias(this.options.resolve.alias)
   }
 
   protected getResolverByPath(path: string) {
@@ -105,7 +109,11 @@ export class Co {
 
     await Promise.allSettled(
       targetPaths.map(async (target) => {
-        const gen = await this.generationResovler.resolveGeneration(target, this.options)
+        const gen = await this.generationResovler.resolveGeneration(target, {
+          ...this.options.generation.text,
+          builder: new LLMBuilder(),
+          fs: this.fsController,
+        })
         generations[target] = gen
       }),
     )
@@ -116,7 +124,7 @@ export class Co {
         return
       }
       source.directives.forEach((directive) => {
-        generations[directive.targetPath]?.addSource(source)
+        generations[directive.targetPath]?.addSources([source])
       })
     })
 
@@ -207,7 +215,11 @@ export class Co {
 
       // !NOTE: temporary disable rewrite
       await Promise.allSettled(pathsNoSource.map(async (absPath) => {
-        const gen = await this.generationResovler.resolveGeneration(absPath, this.options)
+        const gen = await this.generationResovler.resolveGeneration(absPath, {
+          ...this.options.generation.text,
+          fs: this.fsController,
+          builder: new LLMBuilder(),
+        })
         if (!(gen instanceof RewriteTextFileGeneration)) {
           // console.log('Not rewrite generation: ', absPath)
           return
@@ -215,7 +227,7 @@ export class Co {
         if (!this.generations[absPath]) {
           Object.values(this.sourceDiction).forEach((source) => {
             if (source.directives.some(d => d.targetPath === absPath)) {
-              gen.addSource(source)
+              gen.addSources([source])
             }
           })
           this.generations[absPath] = gen

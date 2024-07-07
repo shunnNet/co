@@ -1,24 +1,21 @@
 import {
-  Generation,
   RewriteTextFileGeneration,
+  TTextGenerationOptions,
   WriteTextFileGeneration,
-} from '../Generation'
-import { TCoOptions } from '../types'
+} from '../generations/TextGeneration'
 import querystring from 'node:querystring'
-
-import { LocalFsController } from '../fs/LocalFsController'
+import { Generation } from '../generations/types'
+import { FsController } from '../fs/types'
 
 export type TResolverOptions = {
-  alias?: Record<string, string>
-  fsController?: LocalFsController
-
+  fsController: FsController
 }
 export class Resolver {
   public supportedSourceExtensions: string[] = []
-  public fsController: LocalFsController
+  public fsController: FsController
 
-  constructor(options: TResolverOptions = {}) {
-    this.fsController = options.fsController || new LocalFsController()
+  constructor(options: TResolverOptions) {
+    this.fsController = options.fsController
   }
 
   async isSupportedSource(filename: string) {
@@ -28,10 +25,10 @@ export class Resolver {
 
   async resolveGeneration(
     targetPath: string,
-    coOptions: TCoOptions,
+    generationOptions: TTextGenerationOptions,
   ): Promise<Generation> {
     if (!await this.fsController.exists(targetPath)) {
-      return new WriteTextFileGeneration(targetPath, coOptions)
+      return new WriteTextFileGeneration(targetPath, generationOptions)
     }
     const content = await this.fsController.readFile(targetPath)
     const matchAllComments = [
@@ -39,7 +36,7 @@ export class Resolver {
       ...content.matchAll(/<!--\sco-target\s(?<prompt>.*)-->(?<coContent>[\s\S]*?)<!--\sco-target-end\s-->/g),
     ]
     if (!matchAllComments.length) {
-      return new WriteTextFileGeneration(targetPath, coOptions)
+      return new WriteTextFileGeneration(targetPath, generationOptions)
     }
 
     const rewriteDirectives = matchAllComments.flatMap((match, index) => match.groups?.coContent !== undefined
@@ -58,7 +55,7 @@ export class Resolver {
     return new RewriteTextFileGeneration(
       targetPath,
       rewriteDirectives,
-      coOptions,
+      generationOptions,
     )
   }
 

@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs'
 import { resolve, dirname, extname } from 'path'
 import chokidar from 'chokidar'
-import { FsController } from './interfaces/FsController'
+import { FsController } from './types'
 import fg from 'fast-glob'
 
 type TFsOptions = {
@@ -103,5 +103,9 @@ export class LocalFsController implements FsController {
       this.watcher.close()
       this.watcher = null
     }
+  }
+
+  setAlias(alias: Record<string, string>) {
+    this.alias = alias
   }
 }

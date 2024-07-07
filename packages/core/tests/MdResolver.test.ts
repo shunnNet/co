@@ -1,9 +1,14 @@
 import { test, expect } from 'vitest'
 import { MdResolver } from '../src/directive-resolvers/mdResolver'
 import { SourceDirective } from '../src/directive-resolvers/types'
-
+import { LocalFsController } from '../src/fs/LocalFsController'
+function createResolver() {
+  return new MdResolver({
+    fsController: new LocalFsController(),
+  })
+}
 test('Should resolve single import', () => {
-  const resolver = new MdResolver()
+  const resolver = createResolver()
   const content = `
 <!-- co -->
 [ajs](./a.js)
@@ -24,7 +29,7 @@ test('Should resolve single import', () => {
 })
 
 test('Should resolve multiple imports', () => {
-  const resolver = new MdResolver()
+  const resolver = createResolver()
   const content = `
 <!-- co -->
 [ajs](./a.js)
@@ -45,7 +50,7 @@ test('Should resolve multiple imports', () => {
 // Support means that resolver should resolve the directive in these extensions correctly
 // But can still resolve in other extensions
 test('Should resolve .md', () => {
-  const resolver = new MdResolver()
+  const resolver = createResolver()
   const content = `
 <!-- co -->
 [ajs](./a.js)
@@ -59,7 +64,7 @@ test('Should resolve .md', () => {
   })
 })
 test('Should not resolve import outside of co block', () => {
-  const resolver = new MdResolver()
+  const resolver = createResolver()
   const content = `
 <!-- co -->
 [ajs](./a.js)
@@ -71,7 +76,7 @@ test('Should not resolve import outside of co block', () => {
   expect(result.directives.find(d => d.targetPath === '/root/b.js')).toBeUndefined()
 })
 test('Should correctly resolve co-source', () => {
-  const resolver = new MdResolver()
+  const resolver = createResolver()
   const content = `
 <!-- co-source path:/root/a.js -->
 console.log('a')

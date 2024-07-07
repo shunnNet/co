@@ -11,7 +11,7 @@ export type TCoOptions = {
       apiKey: string
       model: string
       temperature: number
-      getPrompt: null | ((
+      getPrompt?: null | ((
         sources: Source[],
         targetPath: string,
         directive?: RewriteDirective,

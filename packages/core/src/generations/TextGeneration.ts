@@ -1,27 +1,30 @@
-import { LLMBuilder } from './builders/llm'
-import { RewriteDirective, Source } from './directive-resolvers/types'
-import { TCoOptions } from './types'
-import { LocalFsController } from './fs/LocalFsController'
+import { RewriteDirective, Source } from '../directive-resolvers/types'
+import { TCoOptions } from '../types'
+import { FsController } from '../fs/types'
+import { Generation } from './types'
+import { TBuilder } from '../builders/types'
+
+export type TTextGenerationOptions = TCoOptions['generation']['text'] & {
+  fs: FsController
+  builder: TBuilder<string>
+}
+
 export class TextFileGeneration {
   public path: string
   public sources: Source[]
-  protected builder: LLMBuilder
-  protected coOptions: TCoOptions
-  protected fsController: LocalFsController
+  protected builder: TBuilder<string>
+  protected options: TTextGenerationOptions
+  protected fsController: FsController
 
   constructor(
     path: string,
-    coOptions: TCoOptions,
+    options: TTextGenerationOptions,
   ) {
     this.path = path
     this.sources = []
-    this.builder = new LLMBuilder()
-    this.coOptions = coOptions
-    this.fsController = new LocalFsController()
-  }
-
-  addSource(source: Source) {
-    this.sources.push(source)
+    this.options = options
+    this.builder = options.builder
+    this.fsController = this.options.fs
   }
 
   addSources(sources: Source[]) {
@@ -29,27 +32,20 @@ export class TextFileGeneration {
   }
 }
 
-export interface Generation {
-  path: string
-  sources: Source[]
-  generate(): Promise<void>
-  addSource(source: Source): void
-}
-
 export class WriteTextFileGeneration extends TextFileGeneration implements Generation {
   async generate() {
-    const { text: options } = this.coOptions.generation
-
-    const prompt = typeof options.getPrompt === 'function'
-      ? options.getPrompt(this.sources, this.path)
+    const { getPrompt, apiKey, model, temperature } = this.options
+    const prompt = typeof getPrompt === 'function'
+      ? getPrompt(this.sources, this.path)
       : this.getPrompt()
-    console.log('prompt', prompt)
+
     const content = await this.builder.build({
-      apiKey: options.apiKey,
-      model: options.model,
-      temperature: options.temperature,
+      apiKey,
+      model,
+      temperature,
       prompt,
     })
+    console.log(this.path)
     await this.fsController.mkdir(
       this.fsController.getDirname(this.path),
     )
@@ -104,9 +100,9 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
   constructor(
     path: string,
     directives: RewriteDirective[],
-    coOptions: TCoOptions,
+    options: TTextGenerationOptions,
   ) {
-    super(path, coOptions)
+    super(path, options)
     this.directives = directives
   }
 
@@ -116,18 +112,16 @@ export class RewriteTextFileGeneration extends TextFileGeneration implements Gen
 
   async generateByDirectives(directives: RewriteDirective[]) {
     let currentContent = await this.fsController.readFile(this.path)
-
+    const { getPrompt, apiKey, model, temperature } = this.options
     const results = await Promise.allSettled(
       directives.map(async (directive) => {
-        const { text: options } = this.coOptions.generation
-        const prompt = typeof options.getPrompt === 'function'
-          ? options.getPrompt(this.sources, this.path, directive)
+        const prompt = typeof getPrompt === 'function'
+          ? getPrompt(this.sources, this.path, directive)
           : this.getPrompt(directive)
-        console.log('prompt', prompt)
         directive.result = await this.builder.build({
-          apiKey: options.apiKey,
-          model: options.model,
-          temperature: options.temperature,
+          apiKey,
+          model,
+          temperature,
           prompt,
         })
         return directive

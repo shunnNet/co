@@ -3,7 +3,7 @@ import { DirectiveResolver, Source, ResoveOptions } from './types'
 import { Resolver } from './Resolver'
 import { TResolverOptions } from './Resolver'
 export class JsResolver extends Resolver implements DirectiveResolver {
-  constructor(options: TResolverOptions = {}) {
+  constructor(options: TResolverOptions) {
     super(options)
     this.supportedSourceExtensions = ['ts', 'tsx', 'js', 'jsx', 'cjs', 'mjs', 'vue']
   }

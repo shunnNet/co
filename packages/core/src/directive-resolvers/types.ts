@@ -1,5 +1,5 @@
-import { Generation } from '../Generation'
-import { TCoOptions } from '../types'
+import { TTextGenerationOptions } from '../generations/TextGeneration'
+import { Generation } from '../generations/types'
 import { Resolver } from './Resolver'
 
 export type Source = {
@@ -31,7 +31,7 @@ export interface DirectiveResolver {
   ): Source
   resolveGeneration(
     targetPath: string,
-    coOptions: TCoOptions,
+    generationOptions: TTextGenerationOptions
   ): Promise<Generation>
   rewriteGeneration(content: string, id: number, rewrite: string): string
   isSupportedSource(filename: string): Promise<boolean>
