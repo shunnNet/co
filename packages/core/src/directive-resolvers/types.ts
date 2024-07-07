@@ -20,14 +20,14 @@ export type GenerationDirective = {
   resolver: DirectiveResolver
 }
 
-export type ResoveOptions = {
+export type ResolveOptions = {
   filename: string
 }
 
 export interface DirectiveResolver {
   resolve(
     content: string,
-    options: ResoveOptions
+    options: ResolveOptions
   ): Source
   resolveGeneration(
     targetPath: string,

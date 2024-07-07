@@ -1,5 +1,5 @@
 // import { isNodeModule } from '../utils'
-import { DirectiveResolver, Source, ResoveOptions } from './types'
+import { DirectiveResolver, Source, ResolveOptions } from './types'
 import { Resolver } from './Resolver'
 import { TResolverOptions } from './Resolver'
 export class JsResolver extends Resolver implements DirectiveResolver {
@@ -8,7 +8,7 @@ export class JsResolver extends Resolver implements DirectiveResolver {
     this.supportedSourceExtensions = ['ts', 'tsx', 'js', 'jsx', 'cjs', 'mjs', 'vue']
   }
 
-  resolve(content: string, options: ResoveOptions): Source {
+  resolve(content: string, options: ResolveOptions): Source {
     const matchCoContents = [...content.matchAll(/\/\/ co(?<coContent>[\s\S]*?)\/\/ co-end/g)]
     const matchCoSources = [...content.matchAll(/\/\/ co-source (?<dir>.+)(?<fragment>[\s\S]*?)\/\/ co-end/g)]
 

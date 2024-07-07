@@ -1,4 +1,4 @@
-import { DirectiveResolver, Source, ResoveOptions } from './types'
+import { DirectiveResolver, Source, ResolveOptions } from './types'
 import { Resolver } from './Resolver'
 import { TResolverOptions } from './Resolver'
 
@@ -8,7 +8,7 @@ export class MdResolver extends Resolver implements DirectiveResolver {
     this.supportedSourceExtensions = ['md']
   }
 
-  resolve(content: string, options: ResoveOptions): Source {
+  resolve(content: string, options: ResolveOptions): Source {
     const matchCoContents = [...content.matchAll(/<!--\sco\s-->(?<content>[\s\S]+)<!--\sco-end\s-->/g)]
     const matchCoSources = [...content.matchAll(/<!-- co-source (?<dir>.+) -->(?<fragment>[\s\S]*?)<!--\sco-end\s-->/g)]
 
