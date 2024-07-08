@@ -48,6 +48,13 @@ importers:
       fast-glob:
         specifier: ^3.3.2
         version: 3.3.2
+      picomatch:
+        specifier: ^4.0.2
+        version: 4.0.2
+    devDependencies:
+      '@types/picomatch':
+        specifier: ^2.3.4
+        version: 2.3.4
 
   packages/vite-plugin-co:
     dependencies:
@@ -774,6 +781,9 @@ packages:
 
   '@types/node@20.14.2':
     resolution: {integrity: sha512-xyu6WAMVwv6AKFLB+e/7ySZVr/0zLCzOa7rSpq6jNwpqOrUbcACDWC+53d4n2QHOnDou0fbIsg8wZu/sxrnI4Q==}
+
+  '@types/picomatch@2.3.4':
+    resolution: {integrity: sha512-0so8lU8O5zatZS/2Fi4zrwks+vZv7e0dygrgEZXljODXBig97l4cPQD+9LabXfGJOWwoRkTVz6Q4edZvD12UOA==}
 
   '@types/prop-types@15.7.12':
     resolution: {integrity: sha512-5zvhXYtRNRluoE/jAp4GVsSduVUzNWKkOZrCDBWYtE7biZywwdC2AcEzg+cSMLFRfVgeAFqpfNabiPjxFddV1Q==}
@@ -3119,6 +3129,8 @@ snapshots:
   '@types/node@20.14.2':
     dependencies:
       undici-types: 5.26.5
+
+  '@types/picomatch@2.3.4': {}
 
   '@types/prop-types@15.7.12': {}
 

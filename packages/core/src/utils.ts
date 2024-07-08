@@ -19,6 +19,6 @@ export const debounce = (func: CallableFunction, delay: number) => {
   }
 }
 
-export function ensureArray<T>(value: T | T[]): T[] {
-  return Array.isArray(value) ? value : [value]
+export function ensureArray<T>(value?: T | T[]): T[] {
+  return Array.isArray(value) ? value : !value ? [] : [value]
 }

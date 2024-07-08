@@ -10,34 +10,47 @@ export class MdResolver extends Resolver implements DirectiveResolver {
 
   resolve(content: string, options: ResolveOptions): Source {
     const matchCoContents = [...content.matchAll(/<!--\sco\s-->(?<content>[\s\S]+)<!--\sco-end\s-->/g)]
-    const matchCoSources = [...content.matchAll(/<!-- co-source (?<dir>.+) -->(?<fragment>[\s\S]*?)<!--\sco-end\s-->/g)]
-
-    if (matchCoContents.length === 0 && matchCoSources.length === 0) {
-      return {
-        path: options.filename,
-        content,
-        directives: [],
-      }
-    }
-
     const coContents = matchCoContents.map(match => match.groups?.content).filter(Boolean).join('\n')
 
-    const matchImports = coContents.matchAll(/\[[^\]]+\]\((?<path>[^)]+)\)/g)
+    const allImports = this.extractImports(content, options.filename)
+    const allCoImports = this.extractImports(coContents, options.filename)
 
+    const importsUnique = Array.from(
+      new Set([
+        ...allImports.filter(path => this.targetMatcher(path)),
+        ...allCoImports,
+      ]),
+    )
+    const fragments = this.extractFragments(content, options.filename)
+    return {
+      path: options.filename,
+      content,
+      directives: [
+        ...importsUnique.map(targetPath => ({ targetPath, fragment: '' })),
+        ...fragments,
+      ],
+    }
+  }
+
+  extractImports(content: string, filename: string): string[] {
+    const matchImports = content.matchAll(/\[[^\]]+\]\((?<path>[^)]+)\)/g)
     const imports = Array.from(matchImports).flatMap(
       match => match && match.groups ? [match.groups.path] : [],
     )
-
-    const allImports = imports.flatMap((path) => {
+    return imports.flatMap((path) => {
       try {
-        return [this.ensureAbsolutePath(options.filename, path)]
+        return [this.ensureAbsolutePath(filename, path)]
       }
       catch (e) {
         return []
       }
     })
+  }
 
-    const fragments = matchCoSources.flatMap((match) => {
+  extractFragments(content: string, filename: string): { targetPath: string, fragment: string }[] {
+    const matchCoSources = [...content.matchAll(/<!-- co-source (?<dir>.+) -->(?<fragment>[\s\S]*?)<!--\sco-end\s-->/g)]
+
+    return matchCoSources.flatMap((match) => {
       const dir = match.groups?.dir
       const fragment = match.groups?.fragment
       if (!dir || !fragment) {
@@ -48,18 +61,9 @@ export class MdResolver extends Resolver implements DirectiveResolver {
         return []
       }
       return [{
-        targetPath: this.ensureAbsolutePath(options.filename, targetPath),
+        targetPath: this.ensureAbsolutePath(filename, targetPath),
         fragment,
       }]
     })
-
-    return {
-      path: options.filename,
-      content,
-      directives: [
-        ...allImports.map(targetPath => ({ targetPath, fragment: '' })),
-        ...fragments,
-      ],
-    }
   }
 }

@@ -13,7 +13,7 @@ import defu from 'defu'
 import { TCoOptions } from './types'
 import { Generation } from './generations/types'
 import { LLMBuilder } from './builders/llm'
-
+import picomatch from 'picomatch'
 export class Co {
   resolvers: DirectiveResolver[]
   sourceDiction: Record<string, Source>
@@ -21,11 +21,13 @@ export class Co {
   generationResovler: Resolver
   fsController: LocalFsController
   options: TCoOptions
+  targetMatcher: (path: string) => boolean
 
   constructor(options: Partial<TCoOptions>) {
     this.options = defu(options, {
       baseDir: process.cwd(),
       fsController: new LocalFsController(),
+      targets: [],
       includes: ['**/*'],
       excludes: ['**/node_modules/**', '**/.vscode', '**/.git/**'],
       generation: {
@@ -42,21 +44,29 @@ export class Co {
     })
     this.sourceDiction = {}
     this.generations = {}
+    this.fsController = this.options.fsController
+    this.fsController.setAlias(this.options.resolve.alias)
+    this.targetMatcher = picomatch(
+      ensureArray(options.targets).map(
+        t => this.fsController.resolveAlias(this.options.baseDir, t),
+      ),
+    ) as (path: string) => boolean
+
     this.generationResovler = new Resolver({
+      targetMatcher: this.targetMatcher,
       fsController: this.options.fsController,
     })
-    this.fsController = this.options.fsController
+
     this.resolvers = [
       new JsResolver({
-        ...options.resolve,
+        targetMatcher: this.targetMatcher,
         fsController: this.options.fsController,
       }),
       new MdResolver({
-        ...options.resolve,
+        targetMatcher: this.targetMatcher,
         fsController: this.options.fsController,
       }),
     ]
-    this.fsController.setAlias(this.options.resolve.alias)
   }
 
   protected getResolverByPath(path: string) {
@@ -88,7 +98,7 @@ export class Co {
     includes: string | string[] = this.options.includes,
     excludes?: string | string[],
   ) {
-    const excludesArray = excludes ? ensureArray(excludes) : []
+    const excludesArray = ensureArray(excludes)
     this.sourceDiction = {}
     const files = await fg(includes, {
       cwd: this.options.baseDir,

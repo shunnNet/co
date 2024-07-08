@@ -10,45 +10,57 @@ export class JsResolver extends Resolver implements DirectiveResolver {
 
   resolve(content: string, options: ResolveOptions): Source {
     const matchCoContents = [...content.matchAll(/\/\/ co(?<coContent>[\s\S]*?)\/\/ co-end/g)]
-    const matchCoSources = [...content.matchAll(/\/\/ co-source (?<dir>.+)(?<fragment>[\s\S]*?)\/\/ co-end/g)]
-
-    if (matchCoContents.length === 0 && matchCoSources.length === 0) {
-      return {
-        path: options.filename,
-        content,
-        directives: [],
-      }
-    }
     const coContents = matchCoContents.map(match => match.groups?.coContent).filter(Boolean).join('\n')
-    const matchImportSideEfferct = coContents.matchAll(/import\s+['"](?<path>[^\s]*?)['"]/g)
 
-    const coContentRemoveSideEffect = coContents.replace(/import\s+['"][^\s]*?['"]/g, '')
+    const allImports = this.extractImports(content, options.filename)
+    const allCoImports = this.extractImports(coContents, options.filename)
 
+    const importsUnique = Array.from(
+      new Set([
+        ...allImports.filter(path => this.targetMatcher(path)),
+        ...allCoImports,
+      ]),
+    )
+    const fragments = this.extractFragments(content, options.filename)
+
+    return {
+      path: options.filename,
+      content,
+      directives: [
+        ...importsUnique.map(targetPath => ({ targetPath, fragment: '' })),
+        ...fragments,
+      ],
+    }
+  }
+
+  extractImports(content: string, filename: string): string[] {
+    const matchImportSideEfferct = content.matchAll(/import\s+['"](?<path>[^\s]*?)['"]/g)
+    const contentRemoveSideEffect = content.replace(/import\s+['"][^\s]*?['"]/g, '')
     const matchImports = [
-      ...coContentRemoveSideEffect.matchAll(/import[\s\S]*?from ['"](?<path>[^\s]*?)['"]/g),
-      ...coContentRemoveSideEffect.matchAll(/require\(['"](?<path>[^\s]*?)['"]\)/g),
+      ...contentRemoveSideEffect.matchAll(/import[\s\S]*?from ['"](?<path>[^\s]*?)['"]/g),
+      ...contentRemoveSideEffect.matchAll(/require\(['"](?<path>[^\s]*?)['"]\)/g),
     ]
-
     const imports = matchImports.flatMap(
       match => match && match.groups ? [match.groups.path] : [],
     )
     const importsSideEffect = Array.from(matchImportSideEfferct).flatMap(
       match => match && match.groups ? [match.groups.path] : [],
     )
-
-    const allImports = Array.from(
-      new Set([
-        ...imports,
-        ...importsSideEffect,
-      ]),
-    ).flatMap((path) => {
+    return [
+      ...imports,
+      ...importsSideEffect,
+    ].flatMap((path) => {
       try {
-        return [this.ensureAbsolutePath(options.filename, path)]
+        return [this.ensureAbsolutePath(filename, path)]
       }
       catch (e) {
         return []
       }
     })
+  }
+
+  extractFragments(content: string, filename: string): { targetPath: string, fragment: string }[] {
+    const matchCoSources = [...content.matchAll(/\/\/ co-source (?<dir>.+)(?<fragment>[\s\S]*?)\/\/ co-end/g)]
     const fragments = matchCoSources.flatMap((match) => {
       const dir = match.groups?.dir
       const fragment = match.groups?.fragment
@@ -60,18 +72,10 @@ export class JsResolver extends Resolver implements DirectiveResolver {
         return []
       }
       return [{
-        targetPath: this.ensureAbsolutePath(options.filename, targetPath),
+        targetPath: this.ensureAbsolutePath(filename, targetPath),
         fragment,
       }]
     })
-
-    return {
-      path: options.filename,
-      content,
-      directives: [
-        ...allImports.map(targetPath => ({ targetPath, fragment: '' })),
-        ...fragments,
-      ],
-    }
+    return fragments
   }
 }

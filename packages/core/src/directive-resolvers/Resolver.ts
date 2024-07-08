@@ -9,13 +9,16 @@ import { FsController } from '../fs/types'
 
 export type TResolverOptions = {
   fsController: FsController
+  targetMatcher?: (path: string) => boolean
 }
 export class Resolver {
   public supportedSourceExtensions: string[] = []
   public fsController: FsController
+  public targetMatcher: (path: string) => boolean
 
   constructor(options: TResolverOptions) {
     this.fsController = options.fsController
+    this.targetMatcher = options.targetMatcher || (() => false)
   }
 
   async isSupportedSource(filename: string) {

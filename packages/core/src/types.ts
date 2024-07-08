@@ -3,6 +3,7 @@ import { LocalFsController } from './fs/LocalFsController'
 
 export type TCoOptions = {
   baseDir: string
+  targets?: string[]
   includes: string | string[]
   excludes: string | string[]
   fsController: LocalFsController

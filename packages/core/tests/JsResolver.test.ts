@@ -2,9 +2,19 @@ import { test, expect } from 'vitest'
 import { JsResolver } from '../src/directive-resolvers/JsResolver'
 import { SourceDirective } from '../src/directive-resolvers/types'
 import { LocalFsController } from '../src/fs/LocalFsController'
-function createResolver() {
+import picomatch from 'picomatch'
+
+function createResolver(targets: string[] = []) {
+  const fs = new LocalFsController({
+    alias: {
+      '@': '/root',
+    },
+  })
   return new JsResolver({
-    fsController: new LocalFsController(),
+    fsController: fs,
+    targetMatcher: picomatch(
+      targets.map(t => fs.resolveAlias('/root', t)),
+    ),
   })
 }
 test('Should resolve single import', () => {
@@ -129,5 +139,21 @@ console.log('a')
   expect(item).not.toBeUndefined()
   // TODO: not compatible interface SourceDirective
   expect((item as SourceDirective).fragment).toBe(`\nconsole.log('a')\n`)
+})
+test('Should resolve paths matches by targetMatcher', () => {
+  const resolver = createResolver(['./targets/**/*.js'])
+  const content = `
+import { a } from '/root/targets/a.js'
+import { b } from '../targets/b.js'
+import { d } from '@/targets/d.js'
+import { c } from '/root/not-targets/c.js'
+`
+  const results = resolver.resolve(content, { filename: '/root/src/source.js' })
+
+  expect(results.directives).toEqual([
+    { targetPath: '/root/targets/a.js', fragment: '' },
+    { targetPath: '/root/targets/b.js', fragment: '' },
+    { targetPath: '/root/targets/d.js', fragment: '' },
+  ])
 })
 // TODO: should resolve html and css comments
