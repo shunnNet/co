@@ -1,7 +1,7 @@
 {
   "name": "imaginary-ai",
   "type": "module",
-  "version": "0.5.0-alpha.2",
+  "version": "0.7.0-alpha.1",
   "description": "",
   "scripts": {
     "test": "vitest",
