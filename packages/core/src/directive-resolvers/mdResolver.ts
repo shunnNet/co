@@ -9,18 +9,27 @@ export class MdResolver extends Resolver implements DirectiveResolver {
   }
 
   resolve(content: string, options: ResolveOptions): Source {
-    const matchCoContents = [...content.matchAll(/<!--\sco\s-->(?<content>[\s\S]+)<!--\sco-end\s-->/g)]
-    const coContents = matchCoContents.map(match => match.groups?.content).filter(Boolean).join('\n')
+    let coContents = ''
+    if (options.targetFilePath) {
+      coContents = content
+    }
+    else {
+      const matchCoContents = [...content.matchAll(/<!--\sco\s-->(?<content>[\s\S]+)<!--\sco-end\s-->/g)]
+      coContents = matchCoContents.map(match => match.groups?.coContent).filter(Boolean).join('\n')
+    }
 
     const allImports = this.extractImports(content, options.filename)
     const allCoImports = this.extractImports(coContents, options.filename)
 
-    const importsUnique = Array.from(
+    let importsUnique = Array.from(
       new Set([
         ...allImports.filter(path => this.targetMatcher(path)),
         ...allCoImports,
       ]),
     )
+    if (options.targetFilePath) {
+      importsUnique = importsUnique.filter(path => path === options.targetFilePath)
+    }
     const fragments = this.extractFragments(content, options.filename)
     return {
       path: options.filename,

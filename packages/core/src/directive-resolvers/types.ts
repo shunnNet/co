@@ -22,6 +22,7 @@ export type GenerationDirective = {
 
 export type ResolveOptions = {
   filename: string
+  targetFilePath?: string
 }
 
 export interface DirectiveResolver {

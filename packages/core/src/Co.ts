@@ -74,19 +74,30 @@ export class Co {
     return resolver
   }
 
-  async resolveSourceByPath(path: string): Promise<Source | null> {
+  async resolveSourceByPath(
+    path: string,
+    targetFilePath?: string,
+  ): Promise<Source | null> {
     const resolver = this.getResolverByPath(path)
     if (!resolver) {
       return null
     }
     const content = await this.fsController.readFile(path)
-    const source = resolver.resolve(content, { filename: path })
+    const source = resolver.resolve(content, { filename: path, targetFilePath })
     if (!source.directives.length) {
       return null
     }
     else {
       return source
     }
+  }
+
+  async singleTargetFileGeneration(targetPath: string) {
+    targetPath = this.fsController.resolveAlias(this.options.baseDir, targetPath)
+    console.log(targetPath)
+    await this.scan(this.options.includes, this.options.excludes, targetPath)
+    console.log(this.sourceDiction)
+    await this.generate()
   }
 
   /**
@@ -97,6 +108,7 @@ export class Co {
   async scan(
     includes: string | string[] = this.options.includes,
     excludes?: string | string[],
+    targetSourcePath?: string,
   ) {
     const excludesArray = ensureArray(excludes)
     this.sourceDiction = {}
@@ -106,9 +118,15 @@ export class Co {
     })
     await Promise.allSettled(
       files.map(async (aFilePath) => {
-        const source = await this.resolveSourceByPath(aFilePath)
-        if (source) {
-          this.sourceDiction[aFilePath] = source
+        try {
+          const absPath = this.fsController.resolveAlias(this.options.baseDir, aFilePath)
+          const source = await this.resolveSourceByPath(absPath, targetSourcePath)
+          if (source) {
+            this.sourceDiction[aFilePath] = source
+          }
+        }
+        catch (error) {
+          console.error(error)
         }
       }),
     )
