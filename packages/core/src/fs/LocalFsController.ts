@@ -1,18 +1,20 @@
 import { promises as fs } from 'fs'
-import { resolve, dirname, extname } from 'path'
+import { resolve, dirname, extname } from 'pathe'
+import { resolveAlias } from 'pathe/utils'
 import chokidar from 'chokidar'
-import { FsController } from './types'
-import fg from 'fast-glob'
 
 type TFsOptions = {
   alias: Record<string, string>
+  base?: string
 }
-export class LocalFsController implements FsController {
+export class Fs {
   watcher: chokidar.FSWatcher | null
   alias: Record<string, string>
+  base: string
   constructor(
     options: Partial<TFsOptions> = {},
   ) {
+    this.base = options.base || process.cwd()
     this.alias = options.alias || {}
     this.watcher = null
   }
@@ -39,73 +41,19 @@ export class LocalFsController implements FsController {
     }
   }
 
-  resolvePath(baseDir: string, relativePath: string): string {
-    return resolve(baseDir, relativePath)
+  resolve(relativePath: string, base?: string): string {
+    return resolve(base ?? this.base, relativePath)
   }
 
-  resolveAlias(baseDir: string, path: string) {
-    const aliasKeys = Object.keys(this.alias)
-    for (const alias of aliasKeys) {
-      if (path.startsWith(alias)) {
-        return this.resolvePath(baseDir, path.replace(alias, this.alias[alias]))
-      }
-    }
-    return this.resolvePath(baseDir, path)
+  resolveAlias(path: string): string {
+    return resolveAlias(path, this.alias)
   }
 
-  getDirname(path: string): string {
+  dirname(path: string): string {
     return dirname(path)
   }
 
-  getExtname(path: string): string {
+  extname(path: string): string {
     return extname(path)
-  }
-
-  async glob(
-    includes: string | string[],
-    options: {
-      cwd?: string
-      ignore?: string | string[]
-    } = {},
-  ): Promise<string[]> {
-    const { ignore, cwd } = options
-    return await fg(includes, {
-      cwd,
-      ignore: Array.isArray(ignore) ? ignore : !ignore ? undefined : [ignore],
-    })
-  }
-
-  watch(
-    options: {
-      includes: string | string[]
-      excludes: string | string[]
-      cwd: string
-    },
-    callback: (event: string, path: string) => void,
-  ): void {
-    if (this.watcher) {
-      this.unwatch()
-    }
-    this.watcher = chokidar.watch(options.includes, {
-      ignored: options.excludes,
-      persistent: true,
-      cwd: options.cwd,
-    })
-
-    this.watcher
-      .on('add', path => callback('add', path))
-      .on('change', path => callback('change', path))
-      .on('unlink', path => callback('unlink', path))
-  }
-
-  unwatch(): void {
-    if (this.watcher) {
-      this.watcher.close()
-      this.watcher = null
-    }
-  }
-
-  setAlias(alias: Record<string, string>) {
-    this.alias = alias
   }
 }

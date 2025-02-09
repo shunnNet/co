@@ -1,7 +1,7 @@
 import { expect, test, describe, vi, type Mock } from 'vitest'
 
 import { TTextGenerationOptions, WriteTextFileGeneration } from '../src/generations/TextGeneration'
-import { LocalFsController } from '../src/fs/LocalFsController'
+import { Fs } from '../src/fs/LocalFsController'
 import { TBuilder } from '../src/builders/types'
 import { FsController } from '../src'
 
@@ -16,7 +16,7 @@ function createOptions(options: {
   buildResult?: string
 } = {}): TTextGenerationOptions {
   return {
-    fs: options.fs || new LocalFsController({
+    fs: options.fs || new Fs({
       alias: {
         '~': '/root/src',
       },
@@ -25,7 +25,7 @@ function createOptions(options: {
     model: 'test',
     temperature: 0,
     getPrompt: options.getPrompt,
-    builder: createBuilder(options.buildResult || 'test'),
+    generator: createBuilder(options.buildResult || 'test'),
   }
 }
 function createFs(overwrite: Record<string, Mock> = {}) {
@@ -133,7 +133,7 @@ content:
     await gen.generate()
     expect(mockFs.mkdir).toHaveBeenCalledWith('/root/target')
     expect(mockFs.writeFile).toHaveBeenCalledWith(targetPath, buildResult)
-    expect(generationOptions.builder.build).toHaveBeenCalledWith({
+    expect(generationOptions.generator.build).toHaveBeenCalledWith({
       apiKey: generationOptions.apiKey,
       model: generationOptions.model,
       temperature: generationOptions.temperature,

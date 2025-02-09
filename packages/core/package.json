@@ -26,6 +26,7 @@
     "chokidar": "^3.6.0",
     "defu": "^6.1.4",
     "fast-glob": "^3.3.2",
+    "pathe": "^2.0.2",
     "picomatch": "^4.0.2"
   },
   "devDependencies": {

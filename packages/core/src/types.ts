@@ -1,36 +1,39 @@
-import { RewriteDirective, Source } from './directive-resolvers/types'
-import { LocalFsController } from './fs/LocalFsController'
+import { Fs } from './fs/LocalFsController'
+import { TTextGenerator } from './generators/types'
 
 export type TCoOptions = {
   baseDir: string
+  /**
+   * Generation targets
+   *
+   * File paths that match the patterns will be generated
+   */
   targets?: string[]
+  /**
+   * Scan targets
+   *
+   * File paths that match the patterns will be scanned
+   *
+   * Scanned files will be used as sources for generation
+   */
   includes: string | string[]
   excludes: string | string[]
-  fsController: LocalFsController
-  generation: {
-    text: {
-      apiKey: string
-      model: string
-      temperature: number
-      getPrompt?: null | ((
-        sources: Source[],
-        targetPath: string,
-        directive?: RewriteDirective,
-      ) => string)
-    }
-  }
+
+  fs?: typeof Fs
+  generator: TTextGenerator
+
   /**
    * A map of aliases to resolve paths.
    * example:
    *  {
-   *  '@': './src',
-   *  '~': './src',
-   *  '~server: './src/server',
-   *  '~client: './src/client
-   * }
+   *   '@': resolve(__dirname,'./src'),
+   *  }
    */
-  resolve: {
-    alias: Record<string, string>
-  }
+  alias: Record<string, string>
+
+  /**
+   * Default output path for generated css file
+   */
+  cssPath?: string
 
 }

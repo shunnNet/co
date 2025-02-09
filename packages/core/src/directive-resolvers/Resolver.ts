@@ -1,28 +1,30 @@
 import {
-  RewriteTextFileGeneration,
   TTextGenerationOptions,
-  WriteTextFileGeneration,
 } from '../generations/TextGeneration'
+
 import querystring from 'node:querystring'
 import { Generation } from '../generations/types'
-import { FsController } from '../fs/types'
+import { Fs } from '../fs/LocalFsController'
+import { WriteTextFileGeneration } from '../generations/WriteTextFileGeneration'
+import { RewriteTextFileGeneration } from '../generations/RewriteTextFileGeneration'
+import { isRelativePath } from '../fs/utils'
 
 export type TResolverOptions = {
-  fsController: FsController
+  fsController: Fs
   targetMatcher?: (path: string) => boolean
 }
 export class Resolver {
   public supportedSourceExtensions: string[] = []
-  public fsController: FsController
+  public fs: Fs
   public targetMatcher: (path: string) => boolean
 
   constructor(options: TResolverOptions) {
-    this.fsController = options.fsController
+    this.fs = options.fsController
     this.targetMatcher = options.targetMatcher || (() => false)
   }
 
   async isSupportedSource(filename: string) {
-    const ext = await this.fsController.getExtname(filename).slice(1)
+    const ext = await this.fs.extname(filename).slice(1)
     return this.supportedSourceExtensions.includes(ext)
   }
 
@@ -30,10 +32,10 @@ export class Resolver {
     targetPath: string,
     generationOptions: TTextGenerationOptions,
   ): Promise<Generation> {
-    if (!await this.fsController.exists(targetPath)) {
+    if (!await this.fs.exists(targetPath)) {
       return new WriteTextFileGeneration(targetPath, generationOptions)
     }
-    const content = await this.fsController.readFile(targetPath)
+    const content = await this.fs.readFile(targetPath)
     const matchAllComments = [
       ...content.matchAll(/\/\/ co-target(?<prompt>.*)\n(?<coContent>[\s\S]*?)\/\/\sco-target-end/g),
       ...content.matchAll(/<!--\sco-target\s(?<prompt>.*)-->(?<coContent>[\s\S]*?)<!--\sco-target-end\s-->/g),
@@ -94,7 +96,7 @@ export class Resolver {
   }
 
   ensureAbsolutePath(baseFileName: string, relatedPath: string) {
-    const baseExtension = this.fsController.getExtname(baseFileName).split('.').at(-1)
+    const baseExtension = this.fs.extname(baseFileName).split('.').at(-1)
     if (!baseExtension) {
       throw new Error('baseFileName must have extension')
     }
@@ -105,10 +107,13 @@ export class Resolver {
     //   throw new Error('Not support node_modules import')
     // }
 
-    const baseDir = this.fsController.getDirname(baseFileName)
-
-    if (this.fsController.getExtname(relatedPath)) {
-      return this.fsController.resolveAlias(baseDir, relatedPath)
+    if (this.fs.extname(relatedPath)) {
+      if (isRelativePath(relatedPath)) {
+        return this.fs.resolve(relatedPath, this.fs.dirname(baseFileName))
+      }
+      else {
+        return this.fs.resolveAlias(relatedPath)
+      }
     }
     else {
       const [pathWithoutQs, qs] = relatedPath.split('?')
@@ -117,14 +122,14 @@ export class Resolver {
       if (qsObj['co-ext']) {
         const ext = Array.isArray(qsObj['co-ext']) ? qsObj['co-ext'][0] : qsObj['co-ext']
         if ('co-index' in qsObj) {
-          return this.fsController.resolveAlias(baseDir, pathWithoutQs + '/index' + '.' + ext)
+          return this.fs.resolveAlias(pathWithoutQs + '/index' + '.' + ext)
         }
         else {
-          return this.fsController.resolveAlias(baseDir, pathWithoutQs + '.' + ext)
+          return this.fs.resolveAlias(pathWithoutQs + '.' + ext)
         }
       }
       else {
-        return this.fsController.resolveAlias(baseDir, pathWithoutQs + '.' + 'txt')
+        return this.fs.resolveAlias(pathWithoutQs + '.' + 'txt')
       }
     }
   }

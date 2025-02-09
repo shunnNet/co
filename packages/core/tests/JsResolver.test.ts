@@ -1,11 +1,11 @@
 import { test, expect } from 'vitest'
 import { JsResolver } from '../src/directive-resolvers/JsResolver'
 import { SourceDirective } from '../src/directive-resolvers/types'
-import { LocalFsController } from '../src/fs/LocalFsController'
+import { Fs } from '../src/fs/LocalFsController'
 import picomatch from 'picomatch'
 
 function createResolver(targets: string[] = []) {
-  const fs = new LocalFsController({
+  const fs = new Fs({
     alias: {
       '@': '/root',
     },

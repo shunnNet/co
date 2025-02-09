@@ -29,9 +29,13 @@ export class JsResolver extends Resolver implements DirectiveResolver {
     if (options.targetFilePath) {
       importsUnique = importsUnique.filter(path => path === options.targetFilePath)
     }
-    console.log(importsUnique)
     const fragments = this.extractFragments(content, options.filename)
-
+    // console.log('fragments', fragments)
+    // console.log(
+    //   'paths',
+    //   allImports.filter(path => this.targetMatcher(path)),
+    //   allCoImports,
+    // )
     return {
       path: options.filename,
       content,
@@ -69,7 +73,10 @@ export class JsResolver extends Resolver implements DirectiveResolver {
   }
 
   extractFragments(content: string, filename: string): { targetPath: string, fragment: string }[] {
-    const matchCoSources = [...content.matchAll(/\/\/ co-source (?<dir>.+)(?<fragment>[\s\S]*?)\/\/ co-end/g)]
+    const matchCoSources = [
+      ...content.matchAll(/\/\/ co-source (?<dir>.+)(?<fragment>[\s\S]*?)\/\/ co-end/g),
+      ...content.matchAll(/<!--\sco-source (?<dir>.+)-->(?<fragment>[\s\S]*?)<!--\sco-end\s-->/g),
+    ]
     const fragments = matchCoSources.flatMap((match) => {
       const dir = match.groups?.dir
       const fragment = match.groups?.fragment
