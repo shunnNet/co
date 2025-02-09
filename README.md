@@ -22,7 +22,14 @@ A front-end development AI writing assistant, similar to Copilot but with a diff
       - [Javascript](#javascript)
       - [Markdown](#markdown)
   - [Markdown](#markdown-1)
-  - [`aicss` (Experimental)](#aicss-experimental)
+  - [Why `Co` ?](#why-co-)
+    - [Small Issues with Copilot](#small-issues-with-copilot)
+    - [How Co Is Different](#how-co-is-different)
+    - [How Does Co Work?](#how-does-co-work)
+    - [Use Cases and Potential of Co](#use-cases-and-potential-of-co)
+      - [Prototyping](#prototyping)
+      - [TDD (Test-Driven Development)](#tdd-test-driven-development)
+  - [Additional: `aicss` (Experimental)](#additional-aicss-experimental)
   - [License](#license)
 
 ## Features
@@ -101,7 +108,7 @@ You can set `CO_CONFIG_PATH` env variable to change path-to-co-config, e.g: `CO_
 
 To see the prompt `Co` send to model, set environment variable `CONSOLA_LEVEL=4`, e.g: `CONSOLA_LEVEL=4 npx co run`.
 
-> [!WARN]
+> [!WARNING]
 > Use `npx co watch` carefully. There is a possibility of causing infinite model calls. This issue has been addressed, but to prevent any unexpected situations, it is recommended to monitor the terminal while using the command to see if it keeps running continuously.
 
 ## Tutorial & Examples
@@ -296,7 +303,84 @@ router.get('/another-example', (req, res) => {
 module.exports = router;
 ```
 
-## `aicss` (Experimental)
+
+## Why `Co` ?
+
+### Small Issues with Copilot
+I believe many people have used `GitHub Copilot` or similar code assistants. Personally, I use `GitHub Copilot`.
+
+The feature I use most frequently in `GitHub Copilot` is autocomplete. While editing a file, the model predicts the next content and provides suggestions.
+
+This truly deserves the name Copilot—it always lends a helping hand just when you’re feeling exhausted from coding. I often find myself genuinely grateful for it in those moments. At this point, I’ve gotten so used to autocomplete suggestions that it feels strange when they don’t appear.
+
+Within a single file, it often does a good job predicting what I need. However, things get a bit awkward when working across multiple files.
+
+For example, while writing File A, I realize I need a File B containing some functions to complete my work in File A.
+
+With `GitHub Copilot`:
+
+1. It's best to have two tabs open simultaneously—one for File A and one for File B—to provide the model with the correct context (which might mean closing all other tabs first).
+2. Switch to File B and write the functions I need. (If lucky, Copilot might guess what I want and autocomplete them for me.)
+3. I return to File A and import the functions from File B.
+
+If your Copilot behaves like mine, it’s probably most helpful in step 3, when it knows which functions you are trying to use. When I am editing File B, it is harder for Copilot to infer what I want to write based on File A.
+
+Additionally, this disrupts my work in File A. Can it be made even smoother?
+
+### How Co Is Different
+I imagined a different kind of Copilot: one that doesn't just autocomplete within a single file but also understands your intent and writes the files you need in your workspace—almost like having two engineers working on the same project simultaneously.
+
+That’s what `Co` does. With `Co`, the workflow becomes:
+
+1. In File A, reference the function I want from File B.
+2. Save the file.
+3. If necessary, modify File B.
+
+`Co` will automatically generate the module you need and create an appropriate interface based on how you use the function in File A.
+
+The advantage of this approach is that you don’t need to describe what you want in natural language. Describing a feature in natural language can be more cumbersome than just writing a piece of code to demonstrate it—LLMs seem to work the same way. Using natural language forces us to translate abstract code concepts into descriptive sentences, which every software engineer knows can be frustrating.
+
+This method may aligns more closely with how LLMs excel at autocomplete.
+
+Of course, this isn’t meant to replace Copilot. Copilot's autocomplete is great, and its ability to generate documentation or refactor code is also useful. `Co` simply complements Copilot by addressing one of its limitations (in my opinion).
+
+### How Does Co Work?
+From an AI perspective, it uses a simple prompt and makes a single request—no agent-based techniques are involved.
+
+```md
+We have "source files" reference a file not been written, I need you write the "referenced file" contents which fulfill the usage requirements in other source files. You must only return file content without any word.
+
+${sourceFileContents}
+
+---referenced file---
+filename: ${this.path}
+content:
+
+```
+
+### Use Cases and Potential of Co
+
+#### Prototyping
+`Co` is great for quickly generating module interfaces while keeping you in your workflow. Of course, the generated code won’t be perfect—it will still require some manual refinement. An ideal workflow might look like this:
+
+```md
+> Edit Module A  
+> Import module B in A and use it as if it’s already implemented.  
+> Complete Module A.  
+> Edit Module B.  
+> Import module C in B and use it as if it’s already implemented.  
+> Complete Module B.  
+> Edit Module C.  
+> ....  
+```
+
+#### TDD (Test-Driven Development)
+This workflow is actually quite similar to **TDD**: define how something should be used before implementing it.
+
+With `Co`, you can generate interface modules while writing test cases. When combined with `Copilot`, this approach can be even more powerful.
+
+
+## Additional: `aicss` (Experimental)
 > [!INFO]
 > This is an implementation of [`ai-css-concept`](https://github.com/shunnNet/ai-css-concept). The functionality is not yet stable and is for demonstration purposes only.
 
