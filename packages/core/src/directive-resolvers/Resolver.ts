@@ -108,12 +108,7 @@ export class Resolver {
     // }
 
     if (this.fs.extname(relatedPath)) {
-      if (isRelativePath(relatedPath)) {
-        return this.fs.resolve(relatedPath, this.fs.dirname(baseFileName))
-      }
-      else {
-        return this.fs.resolveAlias(relatedPath)
-      }
+      return this.resolvePath(baseFileName, relatedPath)
     }
     else {
       const [pathWithoutQs, qs] = relatedPath.split('?')
@@ -122,15 +117,24 @@ export class Resolver {
       if (qsObj['co-ext']) {
         const ext = Array.isArray(qsObj['co-ext']) ? qsObj['co-ext'][0] : qsObj['co-ext']
         if ('co-index' in qsObj) {
-          return this.fs.resolveAlias(pathWithoutQs + '/index' + '.' + ext)
+          return this.resolvePath(baseFileName, pathWithoutQs + '/index' + '.' + ext)
         }
         else {
-          return this.fs.resolveAlias(pathWithoutQs + '.' + ext)
+          return this.resolvePath(baseFileName, pathWithoutQs + '.' + ext)
         }
       }
       else {
-        return this.fs.resolveAlias(pathWithoutQs + '.' + 'txt')
+        return this.resolvePath(baseFileName, pathWithoutQs + '.' + 'ts')
       }
+    }
+  }
+
+  resolvePath(baseFileName: string, relatedPath: string) {
+    if (isRelativePath(relatedPath)) {
+      return this.fs.resolve(relatedPath, this.fs.dirname(baseFileName))
+    }
+    else {
+      return this.fs.resolveAlias(relatedPath)
     }
   }
 }
