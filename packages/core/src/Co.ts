@@ -27,6 +27,7 @@ export class Co {
       includes: ['**/*'],
       excludes: ['**/node_modules/**', '**/.vscode', '**/.git/**'],
       alias: {},
+      aicss: false,
     })
     logger.debug('Co options:', this.options)
     if (!this.options.generator) {
@@ -69,8 +70,15 @@ export class Co {
     await this.generationGroup.scan(includes, excludes, targetSourcePath)
   }
 
-  generate() {
-    return this.generationGroup.generate()
+  async generate() {
+    await this.generationGroup.generate()
+    if (this.options.aicss) {
+      const files = await fg(this.options.includes, {
+        cwd: this.options.baseDir,
+        ignore: ensureArray(this.options.excludes),
+      })
+      await this.cssGeneration.generate(files)
+    }
   }
 
   singleFileGeneration(targetPath: string) {
@@ -174,10 +182,12 @@ export class Co {
 
       // ---------------------------------------
       // CSS generation
-      const cssPaths = tasks.flatMap(({ event, changedPath }) => {
-        return event === 'change' ? [this.fs.resolve(changedPath)] : []
-      })
-      await this.cssGeneration.generate(cssPaths)
+      if (this.options.aicss) {
+        const cssPaths = tasks.flatMap(({ event, changedPath }) => {
+          return event === 'change' ? [this.fs.resolve(changedPath)] : []
+        })
+        await this.cssGeneration.generate(cssPaths)
+      }
 
       // Rewrite generation
       // const pathsNoSource = updatedPathInfoList.filter(
@@ -224,6 +234,10 @@ export class Co {
       //   }
       //   this.generations[absPath] = gen
       // }))
+    }
+
+    if (this.options.aicss) {
+      this.cssGeneration.touchOutputIfNotExists()
     }
   }
 }

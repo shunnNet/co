@@ -19,10 +19,24 @@ export class CSSGeneration {
     this.outputPath = this.fs.resolve(options.outputPath || './src/ai.css')
   }
 
-  async generate(targetPath: string[], outputPath?: string) {
-    const _outputPath = this.fs.resolve(outputPath || this.outputPath)
-    await this.fs.mkdir(this.fs.dirname(_outputPath))
-    await this.fs.openFile(_outputPath)
+  async touchOutputIfNotExists() {
+    await this.fs.mkdir(this.fs.dirname(this.outputPath))
+    if (!await this.fs.exists(this.outputPath)) {
+      await this.fs.writeFile(this.outputPath, '')
+    }
+  }
+
+  getScope(code: string) {
+    const matchScope = [
+      code.match(/\/\/ @aicss-scope: (?<scope>\S+)/),
+      code.match(/<!-- @aicss-scope: (?<scope>\S+) -->/),
+    ]
+
+    return matchScope.map(m => m?.groups?.scope).filter(Boolean)[0]
+  }
+
+  async generate(targetPath: string[]) {
+    const _outputPath = this.fs.resolve(this.outputPath)
     let cssContent = await this.fs.readFile(_outputPath)
     const originalContent = cssContent
 
@@ -33,8 +47,7 @@ export class CSSGeneration {
         logger.debug('No @ai: found in file: ', targetPath)
         return
       }
-      const matchScope = source.match(/@aicss-scope: (?<scope>.+)/)
-      const scope = matchScope?.groups?.scope || ''
+      const scope = this.getScope(source)
 
       const groups = extractStyleInfos(
         await this.generator.build(this.getPrompt(source, { scope, all })),
