@@ -14,10 +14,9 @@ export class MdResolver extends Resolver implements DirectiveResolver {
       coContents = content
     }
     else {
-      const matchCoContents = [...content.matchAll(/<!--\sco\s-->(?<content>[\s\S]+)<!--\sco-end\s-->/g)]
+      const matchCoContents = [...content.matchAll(/<!--\sco\s-->(?<coContent>[\s\S]+)<!--\sco-end\s-->/g)]
       coContents = matchCoContents.map(match => match.groups?.coContent).filter(Boolean).join('\n')
     }
-
     const allImports = this.extractImports(content, options.filename)
     const allCoImports = this.extractImports(coContents, options.filename)
 

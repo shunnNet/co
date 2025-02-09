@@ -35,7 +35,7 @@ export interface DirectiveResolver {
     generationOptions: TTextGenerationOptions
   ): Promise<Generation>
   rewriteGeneration(content: string, id: number, rewrite: string): string
-  isSupportedSource(filename: string): Promise<boolean>
+  isSupportedSource(filename: string): boolean
 }
 
 export type RewriteDirective = {

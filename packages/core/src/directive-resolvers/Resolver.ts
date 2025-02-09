@@ -23,8 +23,8 @@ export class Resolver {
     this.targetMatcher = options.targetMatcher || (() => false)
   }
 
-  async isSupportedSource(filename: string) {
-    const ext = await this.fs.extname(filename).slice(1)
+  isSupportedSource(filename: string) {
+    const ext = this.fs.extname(filename).slice(1)
     return this.supportedSourceExtensions.includes(ext)
   }
 
