@@ -42,12 +42,18 @@ importers:
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
+      consola:
+        specifier: ^3.4.0
+        version: 3.4.0
       defu:
         specifier: ^6.1.4
         version: 6.1.4
       fast-glob:
         specifier: ^3.3.2
         version: 3.3.2
+      jiti:
+        specifier: ^2.4.2
+        version: 2.4.2
       pathe:
         specifier: ^2.0.2
         version: 2.0.2
@@ -1118,6 +1124,10 @@ packages:
     resolution: {integrity: sha512-I5qxpzLv+sJhTVEoLYNcTW+bThDCPsit0vLNKShZx6rLtpilNpmmeTPaeqJb9ZE9dV3DGaeby6Vuhrw38WjeyQ==}
     engines: {node: ^14.18.0 || >=16.10.0}
 
+  consola@3.4.0:
+    resolution: {integrity: sha512-EiPU8G6dQG0GFHNR8ljnZFki/8a+cQwEQ+7wpxdChl02Q8HXlwEZWD5lqAF8vC2sEC3Tehr8hy7vErz88LHyUA==}
+    engines: {node: ^14.18.0 || >=16.10.0}
+
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
@@ -1698,6 +1708,10 @@ packages:
 
   jiti@1.21.3:
     resolution: {integrity: sha512-uy2bNX5zQ+tESe+TiC7ilGRz8AtRGmnJH55NC5S0nSUjvvvM2hJHmefHErugGXN4pNv4Qx7vLsnNw9qJ9mtIsw==}
+    hasBin: true
+
+  jiti@2.4.2:
+    resolution: {integrity: sha512-rg9zJN+G4n2nfJl5MW3BMygZX56zKPNVEYYqq7adpmMh4Jn2QNEwhvQlFy6jPVdcod7txZtKHWnyZiA3a0zP7A==}
     hasBin: true
 
   js-tokens@4.0.0:
@@ -3571,6 +3585,8 @@ snapshots:
 
   consola@3.2.3: {}
 
+  consola@3.4.0: {}
+
   convert-source-map@2.0.0: {}
 
   cross-spawn@7.0.3:
@@ -4335,6 +4351,8 @@ snapshots:
       set-function-name: 2.0.2
 
   jiti@1.21.3: {}
+
+  jiti@2.4.2: {}
 
   js-tokens@4.0.0: {}
 
