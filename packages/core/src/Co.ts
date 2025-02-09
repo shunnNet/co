@@ -7,6 +7,10 @@ import chokidar from 'chokidar'
 import { CSSGeneration } from './generations/CSSGenration'
 import { GenerationGraph } from './generations/GenerationGraph'
 
+export function defineCoConfig(options: Partial<TCoOptions> & { generator: TTextGenerator }) {
+  return options
+};
+
 export class Co {
   fs: Fs
   options: TCoOptions
