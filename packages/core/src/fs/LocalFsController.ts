@@ -27,6 +27,10 @@ export class Fs {
     await fs.writeFile(path, content, 'utf-8')
   }
 
+  async openFile(path: string): Promise<void> {
+    await fs.open(path, 'w')
+  }
+
   async mkdir(path: string): Promise<void> {
     await fs.mkdir(path, { recursive: true })
   }

@@ -21,6 +21,8 @@ export class CSSGeneration {
 
   async generate(targetPath: string[], outputPath?: string) {
     const _outputPath = this.fs.resolve(outputPath || this.outputPath)
+    await this.fs.mkdir(this.fs.dirname(_outputPath))
+    await this.fs.openFile(_outputPath)
     let cssContent = await this.fs.readFile(_outputPath)
     const originalContent = cssContent
 
