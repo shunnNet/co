@@ -5,8 +5,13 @@
   "main": "./dist/index.cjs",
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "bin",
+    "cli"
   ],
+  "bin": {
+    "co": "./bin/cli.cjs"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
@@ -26,6 +31,7 @@
     "chokidar": "^3.6.0",
     "defu": "^6.1.4",
     "fast-glob": "^3.3.2",
+    "jiti": "^2.4.2",
     "pathe": "^2.0.2",
     "picomatch": "^4.0.2"
   },
