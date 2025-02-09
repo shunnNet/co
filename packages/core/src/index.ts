@@ -1,4 +1,4 @@
 export { Co } from './Co'
-export type { Fs as FsController } from './fs/types'
+export type { Fs } from './fs/LocalFsController'
 
 export * from './generators'
