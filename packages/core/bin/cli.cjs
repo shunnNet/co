@@ -13,3 +13,6 @@ else if (command === 'run') {
   // console.log('✨[co] I will start running...')
   co.run()
 }
+else if (command === 'clear') {
+  co.clear()
+}

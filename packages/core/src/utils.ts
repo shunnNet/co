@@ -22,3 +22,21 @@ export const debounce = (func: CallableFunction, delay: number) => {
 export function ensureArray<T>(value?: T | T[]): T[] {
   return Array.isArray(value) ? value : !value ? [] : [value]
 }
+
+export function clearCoComment(code: string) {
+  const patterns = [
+    /\/\/ co.*\n?/g,
+    /\/\/ co-source.*\n?/g,
+    /\/\/ co-target.*\n?/g,
+    /<!--\sco\s-->.*\n?/g,
+    /<!--\sco-source.*\n?/g,
+    /<!--\sco-target\s(?<prompt>.*)-->.*\n?/g,
+    /\n?\/\/ co-end.*/g,
+    /\n?<!--\sco-end\s-->.*/g,
+    /\n?\/\/\sco-target-end.*/g,
+    /\n?<!--\sco-target-end\s-->.*/g,
+    /\n?.*@cocss-all.*/,
+    /\n?.*@cocss-scope.*/,
+  ]
+  return patterns.reduce((acc, pattern) => acc.replace(pattern, ''), code)
+}

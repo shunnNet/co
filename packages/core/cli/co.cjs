@@ -10,7 +10,11 @@ async function run() {
   await co.scan()
   co.generate()
 }
+async function clear() {
+  await co.clear()
+}
 module.exports = {
   watch,
   run,
+  clear,
 }

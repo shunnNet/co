@@ -1,4 +1,4 @@
-import { debounce } from './utils'
+import { clearCoComment, debounce, ensureArray } from './utils'
 import { Fs } from './fs/LocalFsController'
 import defu from 'defu'
 import { TCoOptions } from './types'
@@ -7,6 +7,7 @@ import chokidar from 'chokidar'
 import { CSSGeneration } from './generations/CSSGenration'
 import { GenerationGraph } from './generations/GenerationGraph'
 import { logger } from './log'
+import fg from 'fast-glob'
 
 export function defineCoConfig(options: Partial<TCoOptions> & { generator: TTextGenerator }) {
   return options
@@ -74,6 +75,25 @@ export class Co {
 
   singleFileGeneration(targetPath: string) {
     return this.generationGroup.singleFileGeneration(targetPath)
+  }
+
+  async clear() {
+    const files = await fg(this.options.includes, {
+      cwd: this.options.baseDir,
+      ignore: ensureArray(this.options.excludes),
+    })
+    let count = 0
+    await Promise.allSettled(
+      files.map(async (f) => {
+        const content = await this.fs.readFile(f)
+        const result = clearCoComment(content)
+        if (content !== result) {
+          count++
+          await this.fs.writeFile(f, result)
+        }
+      }),
+    )
+    logger.info(`Cleared ${count} files.`)
   }
 
   /**
