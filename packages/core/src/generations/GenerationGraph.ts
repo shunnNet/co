@@ -164,6 +164,7 @@ export class GenerationGraph {
     await Promise.allSettled(
       Object.values(generations).map(async (gen) => {
         try {
+          logger.info('Generating: ', gen.path)
           await gen.generate()
           logger.info('Generated: ', gen.path)
           logger.info({ path: gen.path, sources: gen.sources.map(s => s.path) })
