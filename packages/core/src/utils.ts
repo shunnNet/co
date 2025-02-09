@@ -25,18 +25,18 @@ export function ensureArray<T>(value?: T | T[]): T[] {
 
 export function clearCoComment(code: string) {
   const patterns = [
-    /\/\/ co.*\n?/g,
-    /\/\/ co-source.*\n?/g,
-    /\/\/ co-target.*\n?/g,
-    /<!--\sco\s-->.*\n?/g,
-    /<!--\sco-source.*\n?/g,
-    /<!--\sco-target\s(?<prompt>.*)-->.*\n?/g,
-    /\n?\/\/ co-end.*/g,
-    /\n?<!--\sco-end\s-->.*/g,
-    /\n?\/\/\sco-target-end.*/g,
-    /\n?<!--\sco-target-end\s-->.*/g,
-    /\n?.*@cocss-all.*/,
-    /\n?.*@cocss-scope.*/,
+    /\/\/ @co:.*\n?/g,
+    /\/\/ @co-source:.*\n?/g,
+    /\/\/ @co-target:.*\n?/g,
+    /<!--\s@co:\s-->.*\n?/g,
+    /<!--\s@co-source:.*\n?/g,
+    /<!--\s@co-target:(?<prompt>.*)-->.*\n?/g,
+    /\n?\/\/ @co-end.*/g,
+    /\n?<!--\s@co-end\s-->.*/g,
+    /\n?\/\/\s@co-target-end.*/g,
+    /\n?<!--\s@co-target-end\s-->.*/g,
+    /\n?.*@aicss-all.*/,
+    /\n?.*@aicss-scope.*/,
   ]
   return patterns.reduce((acc, pattern) => acc.replace(pattern, ''), code)
 }

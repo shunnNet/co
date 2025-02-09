@@ -26,12 +26,12 @@ export class CSSGeneration {
 
     await Promise.allSettled(targetPath.map(async (targetPath) => {
       let source = await this.fs.readFile(targetPath)
-      const all = source.includes('@cocss-all')
-      if (!source.includes('@co:') && !all) {
-        logger.debug('No @co: found in file: ', targetPath)
+      const all = source.includes('@aicss-all')
+      if (!source.includes('@ai:') && !all) {
+        logger.debug('No @ai: found in file: ', targetPath)
         return
       }
-      const matchScope = source.match(/@cocss-scope: (?<scope>.+)/)
+      const matchScope = source.match(/@aicss-scope: (?<scope>.+)/)
       const scope = matchScope?.groups?.scope || ''
 
       const groups = extractStyleInfos(
@@ -43,7 +43,7 @@ export class CSSGeneration {
         // console.log('replace: ', original, newName)
         source = source
           .replace(original.replace('originalName:', ''), newName)
-          .replace('@co:', '')
+          .replace('@ai:', '')
       })
       logger.info('Write file for css: ', targetPath)
       await this.fs.writeFile(targetPath, source)
@@ -59,7 +59,7 @@ export class CSSGeneration {
     const { scope, all } = options
     const prefix = scope ? `class name prefix: ${scope}` : ''
     const exampleClassName = prefix ? `${scope}-a50pxSquare` : 'a50pxSquare'
-    const allHint = all ? '' : ' only for class name start with "@co:"'
+    const allHint = all ? '' : ' only for class name start with "@ai:"'
     return `I will give a code include css class name, write the style rules which fulfill their functionalities and rewrite class name appropriatly${allHint}, you must answer style rules by the following format with no other words.
 ${prefix}
 code: ${code}

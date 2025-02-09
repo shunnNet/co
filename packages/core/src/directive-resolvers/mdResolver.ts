@@ -14,7 +14,7 @@ export class MdResolver extends Resolver implements DirectiveResolver {
       coContents = content
     }
     else {
-      const matchCoContents = [...content.matchAll(/<!--\sco\s-->(?<coContent>[\s\S]+)<!--\sco-end\s-->/g)]
+      const matchCoContents = [...content.matchAll(/<!--\s@co:\s-->(?<coContent>[\s\S]+)<!--\s@co-end\s-->/g)]
       coContents = matchCoContents.map(match => match.groups?.coContent).filter(Boolean).join('\n')
     }
     const allImports = this.extractImports(content, options.filename)
@@ -56,7 +56,7 @@ export class MdResolver extends Resolver implements DirectiveResolver {
   }
 
   extractFragments(content: string, filename: string): { targetPath: string, fragment: string }[] {
-    const matchCoSources = [...content.matchAll(/<!-- co-source (?<dir>.+) -->(?<fragment>[\s\S]*?)<!--\sco-end\s-->/g)]
+    const matchCoSources = [...content.matchAll(/<!-- @co-source:(?<dir>.+) -->(?<fragment>[\s\S]*?)<!--\s@co-end\s-->/g)]
 
     return matchCoSources.flatMap((match) => {
       const dir = match.groups?.dir
@@ -64,7 +64,7 @@ export class MdResolver extends Resolver implements DirectiveResolver {
       if (!dir || !fragment) {
         return []
       }
-      const targetPath = dir.match(/path:(?<path>[^\s]+)/)?.groups?.path
+      const targetPath = dir.match(/path=(?<path>[^\s]+)/)?.groups?.path
       if (!targetPath) {
         return []
       }
