@@ -7,7 +7,7 @@ function getCo() {
   const config = jiti(configPath)
 
   const { Co } = require('../dist/index.cjs')
-  const co = new Co(config)
+  const co = new Co(config.default || config)
   return co
 }
 
