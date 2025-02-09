@@ -1,5 +1,6 @@
 import { Fs } from '../fs/LocalFsController'
 import { TTextGenerator } from '../generators'
+import { logger } from '../log'
 
 export type TTextGenerationOptions = {
   fs: Fs
@@ -27,7 +28,7 @@ export class CSSGeneration {
       let source = await this.fs.readFile(targetPath)
       const all = source.includes('@cocss-all')
       if (!source.includes('@co:') && !all) {
-        console.log('No @co: found in file: ', targetPath)
+        logger.debug('No @co: found in file: ', targetPath)
         return
       }
       const matchScope = source.match(/@cocss-scope: (?<scope>.+)/)
@@ -39,17 +40,17 @@ export class CSSGeneration {
       const rules = groups.map(({ new: newName, rules }) => `.${newName} {\n${rules}\n}`).join('\n')
 
       groups.forEach(({ original, new: newName }) => {
-        console.log('replace: ', original, newName)
+        // console.log('replace: ', original, newName)
         source = source
           .replace(original.replace('originalName:', ''), newName)
           .replace('@co:', '')
       })
-      console.log('Write file for css: ', targetPath)
+      logger.info('Write file for css: ', targetPath)
       await this.fs.writeFile(targetPath, source)
       cssContent += '\n' + rules
     }))
     if (originalContent !== cssContent) {
-      console.log('Write css file...')
+      logger.info('Writing css file: ', _outputPath)
       await this.fs.writeFile(_outputPath, cssContent)
     }
   }

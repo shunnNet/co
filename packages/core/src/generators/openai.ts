@@ -1,3 +1,4 @@
+import { logger } from '../log'
 import { TTextGenerator } from './types'
 import { sanitizeLLMOutput } from './utils'
 
@@ -15,7 +16,7 @@ export class OpenAITextGenerator implements TTextGenerator {
   }
 
   async build(prompt: string): Promise<string> {
-    console.log(prompt)
+    logger.debug(prompt)
     return fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

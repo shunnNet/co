@@ -6,6 +6,7 @@ import { TTextGenerator } from './generators/types'
 import chokidar from 'chokidar'
 import { CSSGeneration } from './generations/CSSGenration'
 import { GenerationGraph } from './generations/GenerationGraph'
+import { logger } from './log'
 
 export function defineCoConfig(options: Partial<TCoOptions> & { generator: TTextGenerator }) {
   return options
@@ -26,6 +27,11 @@ export class Co {
       excludes: ['**/node_modules/**', '**/.vscode', '**/.git/**'],
       alias: {},
     })
+    logger.debug('Co options:', this.options)
+    if (!this.options.generator) {
+      logger.error('options.generator is required')
+      throw new Error('options.generator is required')
+    }
 
     this.fs = new (this.options.fs || Fs)({
       alias: this.options.alias,
@@ -95,23 +101,23 @@ export class Co {
       // interval: 2000,
     })
       .on('ready', () => {
-        console.log('watcher ready')
+        logger.info('Start watching...')
       })
       .on('all', (event, path) => {
-        console.log('watcher event', { event, path })
+        logger.debug('Watcher event:', { event, path })
         if (!running) {
-          console.log('add queue', { event, path })
+          logger.debug('Add queue', { event, path })
           queue.push({ event, changedPath: path })
           debouncedHandler()
         }
       })
     const debouncedHandler = debounce(async () => {
       running = true
-      console.log('---handling...')
+      logger.info('Handling changes...')
 
       await handler()
 
-      console.log('---done.')
+      logger.info('Done.')
       setTimeout(() => {
         running = false
       }, 1000)

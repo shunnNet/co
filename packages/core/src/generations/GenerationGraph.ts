@@ -9,6 +9,7 @@ import { ensureArray } from '../utils'
 import { Resolver } from '../directive-resolvers/Resolver'
 import { Fs } from '../fs/LocalFsController'
 import fg from 'fast-glob'
+import { logger } from '../log'
 
 type TGenerationGraphOptions = {
   baseDir: string
@@ -106,7 +107,7 @@ export class GenerationGraph {
               this.sourceDiction[absPath] = source
             }
           })
-          .catch(error => console.error(error))
+          .catch(error => logger.error(error))
       }),
     )
   }
@@ -164,11 +165,11 @@ export class GenerationGraph {
       Object.values(generations).map(async (gen) => {
         try {
           await gen.generate()
-          console.log('generated', gen.path)
-          console.log({ path: gen.path, sources: gen.sources.map(s => s.path) })
+          logger.info('Generated: ', gen.path)
+          logger.info({ path: gen.path, sources: gen.sources.map(s => s.path) })
         }
         catch (e) {
-          console.log('error: ', gen.path, e)
+          logger.error('error: ', gen.path, e)
         }
       }),
     )
